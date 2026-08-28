@@ -3779,8 +3779,21 @@ class AcpClient:
         append here would re-add, as an UNRESTRICTED broker stub, exactly the
         servers that projection withheld — a stub carries the same name as the entry
         it rewrites, so the withhold and the re-add are the same server.
+
+        Workload-posture AgentCore Gateway injects the live loopback SigV4
+        listen URL so session/new outranks a stale agent-file port after a
+        gateway restart; the unsigned Gateway hostname is never injected.
+        Login sidecars are a later PR. HTTP elements are
+        ``{name, type: http, url, headers}`` so kiro-cli deserializes them.
         """
-        return [] if self._is_codex else self._pooled_broker_stubs()
+        if self._is_codex:
+            return []
+        servers = self._pooled_broker_stubs()
+        if self._session_key:
+            from kiro_crew.platform.agentcore_gateway import session_gateway_servers
+
+            servers = [*servers, *session_gateway_servers(self._session_key)]
+        return servers
 
     def _resolve_session_mcp_servers(self) -> list[dict[str, Any]]:
         """Translate the agent spec into this session's ``mcpServers`` array.
