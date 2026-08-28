@@ -370,8 +370,9 @@ async def api_cloud_launch_get(request: web.Request) -> web.Response:
 async def api_cloud_launch_create(request: web.Request) -> web.Response:
     """POST /api/cloud/launch — start a launch job.
 
-    Body: ``{provider_id?, profile, region, size_key, agentcore_posture?,
-    agentcore_gateway_url?}``. ``provider_id`` names a
+    Body: ``{provider_id?, profile, region, size_key, agentcore_gateway_url?}``.
+    Dashboard launch stays ``none`` — pass ``--agentcore-posture`` on the CLI.
+    ``provider_id`` names a
     row of ``GET /api/cloud/provisioners`` and defaults to the built-in EC2 lane,
     so a pre-seam client body launches exactly what it always did. The POSIX gate
     is per descriptor: the built-in shells to ``bash``/``aws`` and needs one, an
@@ -392,9 +393,7 @@ async def api_cloud_launch_create(request: web.Request) -> web.Response:
         )
     size_key = str(body.get("size_key") or "").strip()
     provider_id = str(body.get("provider_id") or BUILTIN_PROVISIONER_ID).strip()
-    provisioner = next(
-        (p for p in await _in_executor(_provisioners) if p.id == provider_id), None
-    )
+    provisioner = next((p for p in await _in_executor(_provisioners) if p.id == provider_id), None)
     if provisioner is None:
         _audit("launch_create", "denied", error=f"unknown provisioner {provider_id!r}")
         return web.json_response(
@@ -413,18 +412,16 @@ async def api_cloud_launch_create(request: web.Request) -> web.Response:
             },
             status=400,
         )
-    try:
-        agentcore_posture = iam.normalize_agentcore_posture(
-            str(body.get("agentcore_posture") or "none")
-        )
-    except ValueError:
+    raw_posture = body.get("agentcore_posture")
+    if raw_posture not in (None, "", "none"):
         return web.json_response(
             {
-                "error": "agentcore_posture must be none, workload, or login",
-                "code": "invalid_agentcore_posture",
+                "error": "dashboard launch stays none; pass --agentcore-posture on the CLI",
+                "code": "dashboard_agentcore_posture_forbidden",
             },
             status=400,
         )
+    agentcore_posture = "none"
     try:
         agentcore_gateway_url = iam.normalize_agentcore_gateway_url(
             str(body.get("agentcore_gateway_url") or "")

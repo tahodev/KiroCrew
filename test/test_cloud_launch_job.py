@@ -711,7 +711,9 @@ class TestProvisionerOnTheJob:
         """Another provisioner's ``size_key`` is its own vocabulary; refusing it here
         against ``sizes.py`` would refuse every non-EC2 launch."""
         job = _store(tmp_path).create(
-            profile="", region="us-west-2", size_key="dev.standard1.large",
+            profile="",
+            region="us-west-2",
+            size_key="dev.standard1.large",
             provider_id="devspace",
         )
         assert job.provider_id == "devspace"
@@ -719,14 +721,20 @@ class TestProvisionerOnTheJob:
 
     def test_step_labels_override_only_known_keys(self, tmp_path):
         job = _store(tmp_path).create(
-            profile="", region="", size_key="s", provider_id="devspace",
+            profile="",
+            region="",
+            size_key="s",
+            provider_id="devspace",
             step_labels={lj.STEP_PROVISION: "Create the DevSpace", "bogus": "ignored"},
         )
         labels = {st.key: st.label for st in job.steps}
         assert labels[lj.STEP_PROVISION] == "Create the DevSpace"
         assert labels[lj.STEP_PREFLIGHT] == "Check your AWS setup"  # untouched core label
         assert [st.key for st in job.steps] == [
-            lj.STEP_PREFLIGHT, lj.STEP_PROVISION, lj.STEP_SIGNIN, lj.STEP_CONNECT,
+            lj.STEP_PREFLIGHT,
+            lj.STEP_PROVISION,
+            lj.STEP_SIGNIN,
+            lj.STEP_CONNECT,
         ]
 
     def test_default_steps_with_no_overrides_are_the_core_labels(self):
