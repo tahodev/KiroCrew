@@ -2135,7 +2135,7 @@ describe('SecurityPanel — agent identity', () => {
     renderWithProviders(<SecurityPanel />, { route: '/?section=identity' })
 
     expect(
-      await screen.findByText(i18nT('pages.settings.securityPanel.agent_identity_not_writable')),
+      await screen.findByText(i18nT('pages.settings.securityPanel.agent_identity_blocked_fleet_override')),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('combobox', { name: i18nT('pages.settings.securityPanel.agent_identity_posture') }),
@@ -2143,6 +2143,22 @@ describe('SecurityPanel — agent identity', () => {
     expect(
       screen.getByRole('button', { name: i18nT('pages.settings.securityPanel.agent_identity_save') }),
     ).toBeDisabled()
+  })
+
+  it('names an unreadable policy instead of guessing fleet or signed', async () => {
+    ;(api.getAgentcoreIdentity as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...IDENTITY_UNSET,
+      writable: false,
+      write_blocked: 'unreadable',
+    })
+    renderWithProviders(<SecurityPanel />, { route: '/?section=identity' })
+
+    expect(
+      await screen.findByText(i18nT('pages.settings.securityPanel.agent_identity_blocked_unreadable')),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(i18nT('pages.settings.securityPanel.agent_identity_not_writable')),
+    ).not.toBeInTheDocument()
   })
 
   it('summarises the authored posture on the rail', async () => {
@@ -2158,7 +2174,7 @@ describe('SecurityPanel — agent identity', () => {
     expect(
       await screen.findByText(
         i18nT('pages.settings.securityPanel.agent_identity_rail', {
-          status: i18nT('pages.settings.securityPanel.agent_identity_posture_login'),
+          status: i18nT('pages.settings.securityPanel.agent_identity_state_login'),
         }),
       ),
     ).toBeInTheDocument()
@@ -2175,11 +2191,14 @@ describe('SecurityPanel — agent identity', () => {
     ;(api.getAgentcoreConsent as ReturnType<typeof vi.fn>).mockResolvedValue({
       pending: true,
       url: 'https://github.com/login/oauth/authorize',
+      host: 'github.com',
     })
     renderWithProviders(<SecurityPanel />, { route: '/?section=identity' })
 
+    // The link names WHERE sign-in happens; an unlabelled "open sign-in page"
+    // was the control the blind reader refused to click.
     const link = await screen.findByRole('link', {
-      name: i18nT('pages.settings.securityPanel.agent_identity_consent_open'),
+      name: i18nT('pages.settings.securityPanel.agent_identity_consent_open_host', { host: 'github.com' }),
     })
     expect(link).toHaveAttribute('href', 'https://github.com/login/oauth/authorize')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
@@ -2315,6 +2334,10 @@ describe('SecurityPanel — agent identity', () => {
     expect(await screen.findByText('search')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: i18nT('pages.settings.securityPanel.agent_identity_verify') }))
     await waitFor(() => expect(api.verifyAgentcoreGateway).toHaveBeenCalled())
+    expect(api.syncAgentcoreGatewayTarget).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole('button', { name: i18nT('pages.settings.securityPanel.agent_identity_sync') }),
+    ).not.toBeInTheDocument()
   })
 
   it('shows a failed target status reason from the Gateway', async () => {
@@ -2349,7 +2372,11 @@ describe('SecurityPanel — agent identity', () => {
     })
     renderWithProviders(<SecurityPanel />, { route: '/?section=identity' })
     expect(await screen.findByText('public-docs')).toBeInTheDocument()
-    expect(screen.getByText('FAILED')).toBeInTheDocument()
+    // The raw enum is not shown; the row carries its human label.
+    expect(
+      screen.getByText(i18nT('pages.settings.securityPanel.agent_identity_target_status_failed')),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('FAILED')).toBeNull()
     expect(
       screen.getByText('The MCP server endpoint hostname could not be resolved.'),
     ).toBeInTheDocument()
@@ -2440,5 +2467,51 @@ describe('SecurityPanel — agent identity', () => {
         i18nT('pages.settings.securityPanel.agent_identity_code_invoke_denied'),
       ),
     ).not.toHaveLength(0)
+  })
+
+  it('names an empty catalog when checks passed, and stays quiet when a check failed', async () => {
+    const greenEmpty = {
+      ...CATALOG_IDLE,
+      code: 'ok' as const,
+      posture: 'workload' as const,
+      gateway_url: 'https://demo-gw.gateway.bedrock-agentcore.us-west-2.amazonaws.com/mcp',
+      tools: { reachable: true, skip_reason: null, items: [], via: null },
+      checks: [
+        { id: 'authorizer', ok: true, detail: 'IAM' },
+        { id: 'invoke_scope', ok: true, detail: 'ok' },
+      ],
+    }
+    ;(api.getAgentcoreIdentity as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...IDENTITY_UNSET,
+      configured: true,
+      posture: 'workload',
+      source: 'policy',
+      extra_installed: true,
+      extra_code: 'ok',
+      gateway_url: greenEmpty.gateway_url,
+      workload_name: 'kirocrew-e2e',
+    })
+    ;(api.getAgentcoreGateway as ReturnType<typeof vi.fn>).mockResolvedValue(greenEmpty)
+    renderWithProviders(<SecurityPanel />, { route: '/?section=identity' })
+    expect(
+      await screen.findByText(i18nT('pages.settings.securityPanel.agent_identity_tools_empty_checks_ok')),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(i18nT('pages.settings.securityPanel.agent_identity_tools_empty')),
+    ).not.toBeInTheDocument()
+
+    ;(api.verifyAgentcoreGateway as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...greenEmpty,
+      checks: [{ id: 'authorizer', ok: false, detail: 'mismatch' }],
+    })
+    fireEvent.click(screen.getByRole('button', { name: i18nT('pages.settings.securityPanel.agent_identity_verify') }))
+    await waitFor(() => {
+      expect(
+        screen.queryByText(i18nT('pages.settings.securityPanel.agent_identity_tools_empty_checks_ok')),
+      ).not.toBeInTheDocument()
+    })
+    expect(
+      screen.queryByText(i18nT('pages.settings.securityPanel.agent_identity_tools_empty')),
+    ).not.toBeInTheDocument()
   })
 })

@@ -406,6 +406,8 @@ export interface AgentcoreIdentityData {
 export interface AgentcoreConsentData {
   pending: boolean
   url: string | null
+  /** Hostname of the allowlisted sign-in page, so the card can say where sign-in happens. */
+  host?: string | null
 }
 
 /** One Settings check on the configured AgentCore Gateway. */
