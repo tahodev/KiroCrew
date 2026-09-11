@@ -505,6 +505,127 @@ class TestBuildGuards2:
             wheel_engine.build_shadow_venv(tmp_path / "w.whl", target)
 
 
+class TestBuildUmask:
+    @pytest.mark.parametrize(
+        "inherited, expected",
+        [(0o002, 0o022), (0o022, 0o022), (0o000, 0o022), (0o077, 0o077), (0o027, 0o027)],
+    )
+    def test_only_adds_write_mask_bits(self, inherited: int, expected: int) -> None:
+        """It ORs 0o022 in -- masking group/other write -- and never loosens a
+        stricter caller umask."""
+        saved = os.umask(inherited)
+        try:
+            wheel_engine._tighten_build_umask()
+            # Reading the umask requires setting it; capture then restore.
+            got = os.umask(inherited)
+            assert got == expected
+        finally:
+            os.umask(saved)
+
+    def test_build_runs_children_under_the_umask_hook(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Both _run children and the best-effort pip upgrade get the write-masking
+        preexec, so the tree is born non-group-writable rather than chmod'd after."""
+        seen: list[object] = []
+
+        def fake_run(argv, timeout, step, cwd=None, preexec_fn=None):  # type: ignore[no-untyped-def]
+            seen.append(preexec_fn)
+
+        def fake_subprocess_run(*a: object, **k: object):  # type: ignore[no-untyped-def]
+            seen.append(k.get("preexec_fn"))
+
+        monkeypatch.setattr(wheel_engine, "_run", fake_run)
+        monkeypatch.setattr(wheel_engine.subprocess, "run", fake_subprocess_run)
+        monkeypatch.setattr(wheel_engine, "IS_POSIX", True)
+
+        wheel_engine.build_shadow_venv(tmp_path / "w.whl", tmp_path / "crew-venv-1.0.0")
+
+        assert seen == [wheel_engine._tighten_build_umask] * 3
+
+    def test_build_creates_owner_only_root(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The shadow root is born 0o700 -- not group-writable even under umask 002,
+        so a same-group peer cannot substitute bin/ during the build."""
+        monkeypatch.setattr(wheel_engine, "_run", lambda *a, **k: None)
+        monkeypatch.setattr(
+            wheel_engine.subprocess, "run", lambda *a, **k: type("P", (), {"returncode": 0})()
+        )
+        monkeypatch.setattr(wheel_engine, "IS_POSIX", True)
+        shadow = tmp_path / "crew-venv-1.0.0"
+        saved = os.umask(0o002)
+        try:
+            wheel_engine.build_shadow_venv(tmp_path / "w.whl", shadow)
+        finally:
+            os.umask(saved)
+        assert shadow.stat().st_mode & 0o077 == 0, oct(shadow.stat().st_mode)
+
+    def test_tree_substitutable_flags_group_writable_component(self, tmp_path: Path) -> None:
+        """The leaf, checked first, is flagged when group/world-writable -- so the
+        result is independent of the runner's /tmp ancestor perms."""
+        leaf = tmp_path / "crew-venv-9.9.9" / "bin" / "kirocrew"
+        leaf.parent.mkdir(parents=True)
+        leaf.write_text("")
+        leaf.chmod(0o777)
+        reason = wheel_engine._tree_substitutable(leaf)
+        assert reason and "group- or world-writable" in reason
+
+    def test_verify_refuses_substitutable_tree_before_executing(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """A substitutable tree is refused, and the interpreter is NEVER run -- the
+        permission check gates the probe, so the probe cannot become the exploit."""
+        shadow = tmp_path / "crew-venv-9.9.9"
+        (shadow / "bin").mkdir(parents=True)
+        (shadow / "bin" / "kirocrew").write_text("")
+        ran = []
+        monkeypatch.setattr(wheel_engine.subprocess, "run", lambda *a, **k: ran.append(a) or None)
+        monkeypatch.setattr(
+            wheel_engine,
+            "_tree_substitutable",
+            lambda resolved: "PARENT is group- or world-writable",
+        )
+        with pytest.raises(WheelUpdateError, match="substitutable"):
+            wheel_engine.verify_shadow_venv(shadow, "9.9.9")
+        assert ran == [], "interpreter must not run for a substitutable tree"
+
+    def test_verify_accepts_tight_tree(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        shadow = tmp_path / "crew-venv-9.9.9"
+        (shadow / "bin").mkdir(parents=True)
+        (shadow / "bin" / "kirocrew").write_text("")
+        monkeypatch.setattr(wheel_engine, "_tree_substitutable", lambda resolved: None)
+        monkeypatch.setattr(
+            wheel_engine.subprocess,
+            "run",
+            lambda *a, **k: type("P", (), {"returncode": 0, "stdout": "9.9.9", "stderr": ""})(),
+        )
+        wheel_engine.verify_shadow_venv(shadow, "9.9.9")  # no raise
+
+    def test_real_venv_is_born_non_group_writable_under_permissive_umask(
+        self, tmp_path: Path
+    ) -> None:
+        """End-to-end: a real venv built through the hook under a umask-002 shell
+        has no group/world-writable component, so the AppArmor profile can attach."""
+        target = tmp_path / "v"
+        saved = os.umask(0o002)
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "venv", str(target)],
+                check=True,
+                capture_output=True,
+                preexec_fn=wheel_engine._tighten_build_umask,
+            )
+        finally:
+            os.umask(saved)
+        for path in (target, target / "bin", *(target / "bin").iterdir()):
+            if path.is_symlink():
+                continue
+            assert not path.stat().st_mode & 0o022, path
+
+
 class TestManifestFetchOrchestration:
     def test_fetch_verified_manifest_wires_fetch_parse_verify(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -988,7 +1109,9 @@ class TestShadowBuildGuards:
         (tree / wheel_engine._SHADOW_SENTINEL).write_text("")
         calls: list[str] = []
         monkeypatch.setattr(
-            wheel_engine, "_run", lambda argv, timeout, step, cwd=None: calls.append(step)
+            wheel_engine,
+            "_run",
+            lambda argv, timeout, step, cwd=None, preexec_fn=None: calls.append(step),
         )
         monkeypatch.setattr(
             wheel_engine.subprocess, "run", lambda *a, **k: type("P", (), {"returncode": 0})()
@@ -1030,6 +1153,10 @@ class TestShadowVerification:
                 self.stderr = stderr
 
         monkeypatch.setattr(wheel_engine.subprocess, "run", lambda *a, **k: _Proc())
+        # These tests exercise the version/import probe, not the substitutability
+        # gate, and the gate walks to '/' (where a CI runner's /tmp ancestor is
+        # world-writable). Neutralize it here so the probe path is what is tested.
+        monkeypatch.setattr(wheel_engine, "_tree_substitutable", lambda resolved: None)
 
     def test_version_match_with_console_script_passes(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
@@ -1053,6 +1180,7 @@ class TestShadowVerification:
     def test_import_failure_refused(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         shadow = tmp_path / "crew-venv-9.9.9"
         (shadow / "bin").mkdir(parents=True)
+        (shadow / "bin" / "kirocrew").write_text("")
         self._stub_probe(monkeypatch, returncode=1, stdout="", stderr="ImportError: boom")
         with pytest.raises(WheelUpdateError, match="cannot import"):
             wheel_engine.verify_shadow_venv(shadow, "9.9.9")

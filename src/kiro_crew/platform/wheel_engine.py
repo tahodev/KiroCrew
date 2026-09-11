@@ -640,9 +640,17 @@ def download_verified_wheel(payload: dict[str, str], dest_dir: Path) -> Path:
 # ── Shadow build, verification, promotion ───────────────────────────────────
 
 
-def _run(argv: list[str], timeout: float, step: str, cwd: str | None = None) -> None:
+def _run(
+    argv: list[str],
+    timeout: float,
+    step: str,
+    cwd: str | None = None,
+    preexec_fn: Callable[[], None] | None = None,
+) -> None:
     try:
-        proc = subprocess.run(argv, capture_output=True, timeout=timeout, cwd=cwd)
+        proc = subprocess.run(
+            argv, capture_output=True, timeout=timeout, cwd=cwd, preexec_fn=preexec_fn
+        )
     except subprocess.TimeoutExpired as exc:
         raise WheelUpdateError(f"{step} timed out after {timeout:.0f}s") from exc
     except OSError as exc:
@@ -652,6 +660,32 @@ def _run(argv: list[str], timeout: float, step: str, cwd: str | None = None) -> 
         raise WheelUpdateError(
             f"{step} exited {proc.returncode}" + (f": {detail[-2000:]}" if detail else "")
         )
+
+
+def _tighten_build_umask() -> None:
+    """Child-side hook: mask group/other WRITE before venv/pip create files.
+
+    The managed venv is about to be handed an AppArmor unprivileged-userns grant:
+    ``kirocrew service install`` attaches the profile to ``bin/kirocrew``, and that
+    attachment is REFUSED when the launcher — or any ancestor directory — is group-
+    or world-writable, because another local user could plant a different
+    executable at the same path and inherit the grant (see ``service/apparmor.py``'s
+    ``_substitutable_by_others``). ``python -m venv`` and pip create ``bin/`` and its
+    scripts under the process umask, so on a permissive-umask host (``002``, common
+    on shared dev boxes) the tree would be born ``0775`` and the profile install
+    refuses — recurring on every update, since each update builds a fresh tree.
+
+    This runs in the forked child (a ``subprocess`` ``preexec_fn``), so it never
+    touches the long-lived gateway process's own umask. Making the tree
+    non-group-writable at BIRTH — rather than with a post-build ``chmod`` — leaves
+    no window in which a same-group user could modify the freshly written tree
+    before it is tightened and then blessed by the profile. ``os.umask`` returns the
+    inherited value, which we OR with ``0o022`` and set: only the write-mask bits
+    are added, so a stricter caller umask (``0o077``) is preserved, never loosened.
+    POSIX-only, which is the only place this engine runs (see
+    :func:`running_from_managed_venv`).
+    """
+    os.umask(os.umask(0o022) | 0o022)
 
 
 #: Ownership sentinel: written into a shadow directory the moment this engine
@@ -741,19 +775,36 @@ def build_shadow_venv(wheel_path: Path, shadow_dir: Path, stable_link: Path | No
     # Claim ownership BEFORE any build step: the sentinel is what a future
     # retry's reuse guard keys on, so it must exist from the first moment a
     # partial tree can. `python -m venv` tolerates a non-empty directory.
+    #
+    # The root is created OWNER-ONLY (mode=0o700) before anything is written into
+    # it. It is mkdir'd here in the gateway process, under that process's own
+    # umask, so a permissive umask (002) would otherwise leave the root
+    # group-writable for the whole build -- and a same-group peer could then
+    # replace bin/ inside it before verify/promote and have the launcher point at
+    # their executable under the AppArmor grant. mkdir(mode=0o700) passes any umask
+    # unchanged (umask only masks group/other bits, and 0o700 sets none), so the
+    # root is born owner-only with no window. verify_shadow_venv refuses to promote
+    # a tree whose root/bin/launcher is group/world-writable, so an anomalous mode
+    # is caught before promotion too. Owner-only is safe: the service runs the
+    # launcher as this same user, and no other account needs to traverse the tree.
     try:
-        shadow_dir.mkdir(parents=True, exist_ok=True)
+        shadow_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         (shadow_dir / _SHADOW_SENTINEL).write_text(
             "created by kiro_crew.platform.wheel_engine; removed after verification\n",
             encoding="utf-8",
         )
     except OSError as exc:
         raise WheelUpdateError(f"could not claim the shadow directory: {exc}") from exc
+    # Every child that writes into the tree runs under a write-masking umask, so
+    # bin/kirocrew and its dirs are born non-group-writable (see
+    # _tighten_build_umask). POSIX-only, matching this engine's own reach.
+    build_umask = _tighten_build_umask if IS_POSIX else None
     _run(
         [sys.executable, "-m", "venv", str(shadow_dir)],
         _VENV_CREATE_TIMEOUT_SECS,
         "venv creation",
         cwd=str(shadow_dir.parent),
+        preexec_fn=build_umask,
     )
     shadow_python = shadow_dir / "bin" / "python3"
     try:
@@ -764,6 +815,7 @@ def build_shadow_venv(wheel_path: Path, shadow_dir: Path, stable_link: Path | No
             capture_output=True,
             timeout=_VENV_CREATE_TIMEOUT_SECS,
             cwd=str(shadow_dir),
+            preexec_fn=build_umask,
         )
     except (OSError, subprocess.SubprocessError):
         pass
@@ -772,7 +824,39 @@ def build_shadow_venv(wheel_path: Path, shadow_dir: Path, stable_link: Path | No
         _PIP_INSTALL_TIMEOUT_SECS,
         "pip install into the shadow venv",
         cwd=str(shadow_dir),
+        preexec_fn=build_umask,
     )
+
+
+def _tree_substitutable(resolved: Path) -> str | None:
+    """Explain how another local user could swap *resolved* or an ancestor, or None.
+
+    Two rules, applied to the resolved path and EVERY ancestor up to ``/``: no
+    group- or world-write bit, and ownership by root or the current user only. A
+    group/world-writable directory lets a peer swap the entries inside it; a
+    directory a THIRD account owns can be renamed so the same absolute path
+    resolves to that account's tree, regardless of its mode bits. Walking to the
+    root is what catches a writable ANCESTOR (e.g. a shared ``KIROCREW_VENV``
+    parent), not just the leaf.
+
+    This is the update-time twin of ``service/apparmor.py:_substitutable_by_others``,
+    which enforces the same invariant on ``bin/kirocrew`` at ``kirocrew service
+    install``. The apparmor walk is a service-install gate and never runs on the
+    gateway's own wheel-update path, so verify/promote needs its own check before
+    it executes anything from the tree. POSIX only (the engine's own reach).
+    """
+    getuid = getattr(os, "getuid", None)
+    uid = getuid() if getuid is not None else None
+    for component in (resolved, *resolved.parents):
+        try:
+            info = component.stat()
+        except OSError as exc:
+            return f"{component} could not be inspected ({exc})"
+        if info.st_mode & 0o022:
+            return f"{component} is group- or world-writable (mode {info.st_mode & 0o7777:04o})"
+        if uid is not None and info.st_uid not in (0, uid):
+            return f"{component} is owned by uid {info.st_uid}, neither root nor uid {uid}"
+    return None
 
 
 def verify_shadow_venv(shadow_dir: Path, expected_version: str) -> None:
@@ -782,7 +866,27 @@ def verify_shadow_venv(shadow_dir: Path, expected_version: str) -> None:
     reasoning as ``dep_sync._probe_interpreter``), so the answer describes the
     shadow tree rather than the caller. A tree that cannot import the package,
     or imports a different version, is never promoted.
+
+    The substitutability check runs FIRST, before the interpreter is executed: a
+    tree whose launcher or any ancestor another local user could swap must never
+    have its ``bin/python3`` run, or the probe itself becomes the exploit.
     """
+    launcher = shadow_dir / "bin" / "kirocrew"
+    if not launcher.exists():
+        raise WheelUpdateError("shadow venv is missing the kirocrew console script")
+    if IS_POSIX:
+        try:
+            resolved = launcher.resolve(strict=True)
+        except OSError as exc:
+            raise WheelUpdateError(
+                f"cannot resolve {launcher} to verify permissions — not promoting: {exc}"
+            ) from exc
+        takeover = _tree_substitutable(resolved)
+        if takeover:
+            raise WheelUpdateError(
+                f"refusing to promote a substitutable shadow tree — {takeover}; another "
+                "local user could swap the launcher and have it run under the AppArmor grant"
+            )
     shadow_python = shadow_dir / "bin" / "python3"
     try:
         proc = subprocess.run(
@@ -814,8 +918,6 @@ def verify_shadow_venv(shadow_dir: Path, expected_version: str) -> None:
         raise WheelUpdateError(
             f"shadow venv reports version {got!r}, expected {expected_version!r} — not promoting"
         )
-    if not (shadow_dir / "bin" / "kirocrew").exists():
-        raise WheelUpdateError("shadow venv is missing the kirocrew console script")
 
 
 def promote(shadow_dir: Path, stable_link: Path) -> None:
