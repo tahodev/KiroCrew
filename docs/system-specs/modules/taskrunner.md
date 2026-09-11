@@ -567,7 +567,8 @@ Each task runs on an isolated git branch via `git_coord.py`:
 - **State summary**: `git log --oneline` + `git diff --stat` injected into step prompts
 - **Review diff**: `git diff HEAD~1` fed to independent review session
 - **Finalize**: worktree cleaned up on task completion
-- **Retry recovery**: a retry validates the saved worktree's path, repository,
+- **Resume recovery**: a retry — and a restart of a run that already had a
+  worktree — validates the saved worktree's path, repository,
   and branch before dispatching more steps. A lost worktree is recreated from
   its original repository and existing task branch only when a surviving Git
   pointer positively identifies the stale checkout; an arbitrary replacement
@@ -580,7 +581,10 @@ Each task runs on an isolated git branch via `git_coord.py`:
   that cannot be deleted is logged and left on disk beside the recreated
   worktree rather than failing the retry.
 
-Git init failure is non-fatal — task continues without git coordination.
+Git init failure on a run's first initialisation is non-fatal — the task
+continues without git coordination. A resumed run (retry or restart of a run
+that already had a worktree) whose worktree is lost and cannot be recreated
+fails closed instead of continuing without git isolation.
 
 ## Cycle Detection
 
