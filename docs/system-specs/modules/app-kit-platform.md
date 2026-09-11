@@ -107,6 +107,26 @@ design: `_enrich_with_install_status` and `_apply_trust_fields` run afterwards
 and stamp them server-side, so an index-supplied value for one of them can
 never be read before it is replaced.
 
+The fetched `app.json` that feeds this merge is cached on disk
+(`cache/app-manifests/`), and the cache identity is the row's FULL source
+coordinates, not its name: `_manifest_cache_path` digests the normalized
+credential-free clone origin, the effective ref (always the configured
+branch, plus the pinned commit when the row carries one — non-catalog pins
+are data fidelity, not what the listing fetch resolves, so the branch must
+stay in the key), the repository subdirectory, and the app name into the
+file name. Changing the configured branch is therefore a cache MISS by
+construction, two same-name apps from different repositories never share (or
+poison) each other's cached metadata, and a failed fetch cannot silently
+attach a manifest cached for another branch or repo — the name-keyed
+predecessor could not establish provenance and did all three (#10145). The
+registry-refresh sweep expires caches through the same path derivation, so a
+row whose coordinates changed in the new index expires the OLD coordinates'
+file via the prior index's row. Coordinate churn orphans the old files
+themselves — no reader ever derives their path again — so the write path
+garbage-collects files older than every TTL plus a grace window
+(`_gc_manifest_cache_dir`), which bounds what an index that rotates its
+coordinates can accumulate while staying invisible to reads.
+
 The client
 (`isVerified`/`sourceLabel` in `website/src/components/appstore/types.ts`)
 reads the server fields, still rejects a `_registry`-tagged row first (so
