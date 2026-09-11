@@ -3232,6 +3232,7 @@ class _ChatSlot:
 
     __slots__ = (
         "_buffers",
+        "_decision_dismissed_ts",
         "_projection",
         "_queue_repository",
         "_source_links_cache",
@@ -4129,6 +4130,15 @@ class _ChatSlot:
         # "the agent is done and asked you something", and which entries a user
         # message may retire.
         self._question_pending: dict[str, dict] = {}
+        # Dismiss tombstone for the projection's buried-decision scan
+        # (slot_projection.py): the ``ts`` of the one options-bearing assistant
+        # row whose ``pending_decision`` the user explicitly waved away. The
+        # projection re-derives from the transcript on every push, so dismissal
+        # cannot be a state delete — there is no state to delete — it has to name
+        # the message it silences. A LATER options turn has a different ts and
+        # surfaces normally. In-memory like ``_question_pending``: after a
+        # restart the card may reappear, which errs on the side of re-asking.
+        self._decision_dismissed_ts: str = ""
 
     @property
     def _dirty(self) -> bool:
@@ -6203,6 +6213,24 @@ class DashboardState:
     def _broadcast_question_retired(self, slot_key: str, card_ids: list[str]) -> None:
         """Tell owner clients that question cards are no longer actionable."""
         _questions_for(self).broadcast_retired(self, slot_key, card_ids)
+
+    def dismiss_pending_decision(self, slot_key: str, ts: str) -> bool:
+        """Silence one buried [OPTIONS:] decision without answering it.
+
+        ``ts`` names the options-bearing assistant row (the ``pending_decision``
+        payload carries it), not the slot: the decision can be superseded by a
+        newer options turn before the dismissal lands, and a slot-wide clear
+        would silence THAT one unseen. The projection re-derives on every push,
+        so this only records the tombstone and pushes; there is no record to
+        delete. Returns False for an unknown slot or a blank ts so the route can
+        404 instead of acknowledging a no-op.
+        """
+        slot = self._slots.get(slot_key)
+        if slot is None or not ts:
+            return False
+        slot._decision_dismissed_ts = ts
+        _questions_for(self).push_slots(self)
+        return True
 
     def _push_slots(self) -> None:
         """Push question status without failing the question lifecycle."""
