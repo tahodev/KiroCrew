@@ -508,6 +508,32 @@ async def api_work_ledger_get(request: web.Request) -> web.Response:
     assert record is not None
 
     state: DashboardState = request.app["state"]
+    payload = await read_ledger_snapshot(state, key, record)
+
+    if _reaches_a_channel(request, request.headers.get("X-Session-Key", "")):
+        _audit(
+            request.headers.get("X-Session-Key", "") or "anonymous",
+            "work_ledger_read",
+            "denied",
+            resources="channel_agent_block_post_read",
+        )
+        return _refuse_403(
+            "channel_session",
+            "This session gained a channel mirror while the ledger was being read, "
+            "so it is no longer a private surface to return it to.",
+        )
+    _audit(key, "work_ledger_read", "ok", resources=f"{len(payload['items'])} item(s)")
+    return web.json_response(payload)
+
+
+async def read_ledger_snapshot(
+    state: DashboardState, key: str, record: work_ledger.ConductorRecord
+) -> dict[str, Any]:
+    """Project one authorized ledger for the MCP and owner-dashboard readers.
+
+    Authentication belongs to each caller. Sharing the projection keeps the
+    board's worker liveness and acceptance verdicts aligned with the conductor.
+    """
     items = await asyncio.to_thread(work_ledger.list_work_items, key)
     # Liveness is read straight off the dashboard's own slot table rather than
     # over HTTP: this handler runs in the process that owns it. ``orphaned`` asks
@@ -530,28 +556,11 @@ async def api_work_ledger_get(request: web.Request) -> web.Response:
         row["events"] = [event.to_dict() for event in events]
         rows.append(row)
 
-    if _reaches_a_channel(request, request.headers.get("X-Session-Key", "")):
-        # Same post-await re-check as ``work_brief``. This payload is larger: every
-        # item's acceptance bar plus worker-authored prose for the whole fleet.
-        _audit(
-            request.headers.get("X-Session-Key", "") or "anonymous",
-            "work_ledger_read",
-            "denied",
-            resources="channel_agent_block_post_read",
-        )
-        return _refuse_403(
-            "channel_session",
-            "This session gained a channel mirror while the ledger was being read, "
-            "so it is no longer a private surface to return it to.",
-        )
-    _audit(key, "work_ledger_read", "ok", resources=f"{len(rows)} item(s)")
-    return web.json_response(
-        {
-            "conductor": record.to_dict(),
-            "items": rows,
-            "accept_batch": work_ledger.accept_batch(items),
-        }
-    )
+    return {
+        "conductor": record.to_dict(),
+        "items": rows,
+        "accept_batch": work_ledger.accept_batch(items),
+    }
 
 
 #: Events returned per item. The log is append-only and capped at 200 per item,

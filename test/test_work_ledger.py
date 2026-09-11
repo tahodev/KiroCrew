@@ -1832,21 +1832,14 @@ def test_acquiring_a_lock_does_not_truncate_the_lock_file():
 # ── revertability ─────────────────────────────────────────────────────────
 
 
-#: The ONLY modules that may import the store. Phase 1 asserted the set was empty,
-#: which made that phase revertable by deleting two files; Phase 2 adds exactly ONE
-#: importer and the check becomes an allowlist rather than disappearing, because the
-#: intent it enforces outlived the empty set. One entry is the strong form of that
-#: intent: even ``mcp_work.py``, the server whose four tools this store exists for,
-#: does not import it — it reaches the store over the dashboard HTTP API like every
-#: other consumer, which is what keeps identity resolved server-side and lets the
-#: Crew page read the same rows. A second importer is therefore a design change —
-#: some module building paths or resolving identity for itself — and must argue for
-#: itself in review rather than arrive with a passing suite.
+#: Only dashboard handlers may touch the store. MCP callers and the browser
+#: both use HTTP so each route resolves identity before reaching storage.
 _PERMITTED_STORE_IMPORTERS = frozenset(
     {
-        # The four tools' HTTP routes, and the ONLY module that touches the store
-        # directly: identity comes from X-Session-Key, never from the body.
+        # Strict internal caller identity, never a body-supplied session.
         "dashboard/handlers/work_ledger.py",
+        # Owner identity plus the member's protected, current DM binding.
+        "dashboard/handlers/member_work.py",
     }
 )
 

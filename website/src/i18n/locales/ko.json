@@ -14871,5 +14871,52 @@
     "resolve_explanation": "현재 값을 유지합니다. 적용하면 결정을 기록하고 대기 중인 제안을 닫습니다.",
     "forget_count": "선택한 기억 잊기: {{count}}",
     "retry_preview_page": "미리 보기 페이지 다시 시도"
+  },
+  "memberTasks": {
+    "board": "작업 보드",
+    "connecting": "멤버의 대화에 연결 중…",
+    "create": "작업 만들기",
+    "criteria": "인수 기준",
+    "decision": "결정: {{decision}}",
+    "description": "작업을 만들고 지시를 보내며 실행 에이전트의 보고를 확인하세요. 완료하려면 인수가 필요합니다. 비공개 메모리를 사용하는 멤버는 워커 진행 상황의 자동 추적을 사용할 수 없습니다.",
+    "empty": "아직 작업이 없습니다. 작업을 만들어 시작하세요.",
+    "history": "활동",
+    "lanes": {
+      "blocked": "차단됨",
+      "closed": "종료됨",
+      "done": "완료",
+      "progress": "진행 중",
+      "review": "검토",
+      "todo": "할 일"
+    },
+    "new": "새 작업",
+    "next": "다음: {{next}}",
+    "open_worker": "실행 에이전트 대화 열기",
+    "queued": "지시가 대기열에 추가되었습니다. 멤버가 보고하면 진행 상황이 업데이트됩니다.",
+    "refresh": "작업 새로고침",
+    "saving": "저장 중…",
+    "send": "지시 보내기",
+    "send_refused": "지시가 수락되지 않았습니다.",
+    "send_uncertain": "전달 여부를 확인하지 못했습니다. 다시 보내기 전에 대화를 확인하세요. 지시는 여기에 남아 있습니다.",
+    "sending": "전송 중…",
+    "sent": "지시를 보냈습니다. 멤버가 보고하면 진행 상황이 업데이트됩니다.",
+    "stale": "업데이트 대기 중",
+    "start": "작업 보내기",
+    "start_instruction": "이 작업을 시작하세요. `work_ledger_read`를 읽고 `work_ledger_record`로 결정을 기록한 뒤, 작업을 배정하기 전에 `work_brief`와 `work_report`를 사용할 수 있는 실행 에이전트를 연결하세요. 인수 전에 기준을 검증하세요. 사용할 수 없는 도구나 배정 제한은 이 대화에 보고하세요.",
+    "steer_member": "멤버에게 보낼 지시",
+    "steer_task": "‘{{title}}’에 대한 지시",
+    "tab": "작업",
+    "task_context": "작업 {{id}}: {{title}}\n인수 기준: {{criteria}}\n기존 작업 원장 항목을 사용하고 중복 항목을 만들지 마세요.",
+    "title": "작업 제목",
+    "toggle_closed": "종료된 작업 표시 또는 숨기기",
+    "updated": "업데이트: {{date}}",
+    "verdicts": {
+      "error": "인수 확인 오류",
+      "fail": "인수 실패",
+      "pass": "인수 통과",
+      "pending": "인수 대기",
+      "refused": "인수 거부"
+    },
+    "worker_missing": "조정 에이전트를 사용할 수 없음"
   }
 }

@@ -3201,17 +3201,16 @@ class AcpRuntime:
         if member_session_key:
             # circular import: members' module graph is heavy; resolved at call
             # time like the projection seams below.
-            from kiro_crew.members import member_dispatch_session_server
+            from kiro_crew.members import member_session_servers
 
-            member_entry = await asyncio.to_thread(
-                member_dispatch_session_server, member_session_key
-            )
-            if member_entry is not None:
+            member_entries = await asyncio.to_thread(member_session_servers, member_session_key)
+            if member_entries:
                 # Session-level entries outrank same-named spec entries, so drop
                 # any stub for the same server rather than registering it twice.
-                mcp_servers = [e for e in mcp_servers if e.get("name") != member_entry["name"]] + [
-                    member_entry
-                ]
+                names = {entry["name"] for entry in member_entries}
+                mcp_servers = [
+                    e for e in mcp_servers if e.get("name") not in names
+                ] + member_entries
             else:
                 logger.warning(
                     "member session %s: dashboard server unresolved — the DM "
@@ -3479,15 +3478,14 @@ class AcpRuntime:
         if member_session_key:
             # circular import: members' module graph is heavy; resolved at call
             # time, same as create_session().
-            from kiro_crew.members import member_dispatch_session_server
+            from kiro_crew.members import member_session_servers
 
-            member_entry = await asyncio.to_thread(
-                member_dispatch_session_server, member_session_key
-            )
-            if member_entry is not None:
-                mcp_servers = [e for e in mcp_servers if e.get("name") != member_entry["name"]] + [
-                    member_entry
-                ]
+            member_entries = await asyncio.to_thread(member_session_servers, member_session_key)
+            if member_entries:
+                names = {entry["name"] for entry in member_entries}
+                mcp_servers = [
+                    e for e in mcp_servers if e.get("name") not in names
+                ] + member_entries
             else:
                 logger.warning(
                     "member session %s: dashboard server unresolved on resume — "

@@ -15253,5 +15253,52 @@
     "resolve_explanation": "Mantenha o valor atual. Aplicar registra esta decisão e encerra as propostas pendentes.",
     "forget_count": "Esquecer memórias selecionadas: {{count}}",
     "retry_preview_page": "Tentar página de prévia novamente"
+  },
+  "memberTasks": {
+    "board": "Quadro de tarefas",
+    "connecting": "Conectando à conversa do membro…",
+    "create": "Criar tarefa",
+    "criteria": "Critérios de aceitação",
+    "decision": "Decisão: {{decision}}",
+    "description": "Crie tarefas, envie instruções e acompanhe os relatórios dos agentes executores. Concluir exige aceitação. O acompanhamento automático do progresso dos agentes auxiliares não está disponível para membros com memória privada.",
+    "empty": "Ainda não há tarefas. Crie uma para começar.",
+    "history": "Atividade",
+    "lanes": {
+      "blocked": "Bloqueada",
+      "closed": "Encerrada",
+      "done": "Concluída",
+      "progress": "Em andamento",
+      "review": "Revisão",
+      "todo": "A fazer"
+    },
+    "new": "Nova tarefa",
+    "next": "Próximo: {{next}}",
+    "open_worker": "Abrir conversa do agente executor",
+    "queued": "Instruções na fila. O progresso será atualizado quando o membro relatar.",
+    "refresh": "Atualizar tarefas",
+    "saving": "Salvando…",
+    "send": "Enviar instruções",
+    "send_refused": "As instruções não foram aceitas.",
+    "send_uncertain": "Não foi possível confirmar a entrega. Confira a conversa antes de enviar de novo; suas instruções continuam aqui.",
+    "sending": "Enviando…",
+    "sent": "Instruções enviadas. O progresso será atualizado quando o membro relatar.",
+    "stale": "Aguardando atualização",
+    "start": "Enviar tarefa",
+    "start_instruction": "Inicie esta tarefa. Leia `work_ledger_read`, registre decisões com `work_ledger_record` e vincule um agente executor que possa usar `work_brief` e `work_report` antes de delegar. Verifique os critérios antes de aceitar. Informe ferramentas indisponíveis ou restrições de delegação em nossa conversa.",
+    "steer_member": "Instruções para o membro",
+    "steer_task": "Instruções para \"{{title}}\"",
+    "tab": "Tarefas",
+    "task_context": "Tarefa {{id}}: {{title}}\nCritérios de aceitação: {{criteria}}\nUse o item existente do registro de trabalho; não crie uma duplicata.",
+    "title": "Título da tarefa",
+    "toggle_closed": "Mostrar ou ocultar tarefas encerradas",
+    "updated": "Atualizada em {{date}}",
+    "verdicts": {
+      "error": "Erro na verificação de aceitação",
+      "fail": "Aceitação reprovada",
+      "pass": "Aceitação aprovada",
+      "pending": "Aceitação pendente",
+      "refused": "Aceitação recusada"
+    },
+    "worker_missing": "Coordenador indisponível"
   }
 }

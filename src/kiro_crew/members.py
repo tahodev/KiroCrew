@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from kiro_crew import platform_compat
 from kiro_crew.artifacts import slugify
@@ -254,6 +255,32 @@ def member_dispatch_session_server(session_key: str) -> dict[str, object] | None
         "env": env,
         "type": "stdio",
     }
+
+
+def member_session_servers(session_key: str) -> list[dict[str, Any]]:
+    """Mount session control and work tracking under the same member identity."""
+    from kiro_crew.agent import _kirocrew_mcp_invocation
+
+    dashboard = member_dispatch_session_server(session_key)
+    if dashboard is None:
+        return []
+    servers = [dict(dashboard)]
+    try:
+        command, args = _kirocrew_mcp_invocation("mcp-work")
+    except Exception:
+        logger.warning("member work: could not resolve the work server command", exc_info=True)
+        return servers
+    if command:
+        servers.append(
+            {
+                "name": "kirocrew-work",
+                "command": command,
+                "args": list(args),
+                "env": dashboard["env"],
+                "type": "stdio",
+            }
+        )
+    return servers
 
 
 # Same shape the artifact store enforces for its slugs: lowercase letters,

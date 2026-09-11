@@ -15254,5 +15254,52 @@
     "resolve_explanation": "Conserva el valor actual. Aplicar registra esta decisión y cierra sus propuestas pendientes.",
     "forget_count": "Olvidar recuerdos seleccionados: {{count}}",
     "retry_preview_page": "Reintentar página de vista previa"
+  },
+  "memberTasks": {
+    "board": "Tablero de tareas",
+    "connecting": "Conectando con la conversación del miembro…",
+    "create": "Crear tarea",
+    "criteria": "Criterios de aceptación",
+    "decision": "Decisión: {{decision}}",
+    "description": "Crea tareas, envía instrucciones y sigue los informes de los agentes ejecutores. Completar requiere aceptación. El seguimiento automático del progreso de los agentes auxiliares no está disponible para miembros con memoria privada.",
+    "empty": "Aún no hay tareas. Crea una para empezar.",
+    "history": "Actividad",
+    "lanes": {
+      "blocked": "Bloqueada",
+      "closed": "Cerrada",
+      "done": "Completada",
+      "progress": "En curso",
+      "review": "Revisión",
+      "todo": "Por hacer"
+    },
+    "new": "Nueva tarea",
+    "next": "Siguiente: {{next}}",
+    "open_worker": "Abrir conversación del agente ejecutor",
+    "queued": "Instrucciones en cola. El progreso se actualiza cuando el miembro informa.",
+    "refresh": "Actualizar tareas",
+    "saving": "Guardando…",
+    "send": "Enviar instrucciones",
+    "send_refused": "Las instrucciones no se aceptaron.",
+    "send_uncertain": "No se pudo confirmar la entrega. Revisa la conversación antes de volver a enviar; tus instrucciones siguen aquí.",
+    "sending": "Enviando…",
+    "sent": "Instrucciones enviadas. El progreso se actualiza cuando el miembro informa.",
+    "stale": "Esperando una actualización",
+    "start": "Enviar tarea",
+    "start_instruction": "Inicia esta tarea. Lee `work_ledger_read`, registra decisiones con `work_ledger_record` y vincula un agente ejecutor que pueda usar `work_brief` y `work_report` antes de asignarle trabajo. Verifica los criterios antes de aceptar. Informa de herramientas no disponibles o restricciones de asignación en nuestra conversación.",
+    "steer_member": "Instrucciones para el miembro",
+    "steer_task": "Instrucciones para \"{{title}}\"",
+    "tab": "Tareas",
+    "task_context": "Tarea {{id}}: {{title}}\nCriterios de aceptación: {{criteria}}\nUsa la entrada existente del registro de trabajo; no crees un duplicado.",
+    "title": "Título de la tarea",
+    "toggle_closed": "Mostrar u ocultar tareas cerradas",
+    "updated": "Actualizada {{date}}",
+    "verdicts": {
+      "error": "Error de comprobación de aceptación",
+      "fail": "Aceptación fallida",
+      "pass": "Aceptación aprobada",
+      "pending": "Aceptación pendiente",
+      "refused": "Aceptación rechazada"
+    },
+    "worker_missing": "Coordinador no disponible"
   }
 }

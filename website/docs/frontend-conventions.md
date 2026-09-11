@@ -25,6 +25,17 @@ throws at module scope, so the page renders blank rather than degrading.
 
 ## Shared components
 
+Chat side-panel hosts may pass ordered `leadingTabs` and the corresponding
+`usePanelTabs` `leadingIds`; `leadingId` remains the default focus. The singular
+`leadingTab` remains supported. A host tab with `keepMounted` retains its body
+in a hidden container across tab switches. Its host must pause hidden queries
+and retain drafts above any placement that can unmount the panel. Crew Members
+uses this for Tasks beside Crew summary; withdrawing an unconfirmed member's
+task tab withholds all task actions while preserving that generation's drafts.
+Task drafts and mutation outcomes live in the dashboard Redux slice, keyed by
+exact member and conversation generation. This in-memory state survives route
+unmounts and late mutation callbacks; it is not written to browser storage.
+
 `src/components/ui.tsx` is the primitive set. Compose from it rather than
 hand-rolling:
 

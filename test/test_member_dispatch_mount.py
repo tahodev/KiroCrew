@@ -41,6 +41,7 @@ from kiro_crew.members import (
     MEMBER_DISPATCH_SERVER,
     is_member_session_key,
     member_dispatch_session_server,
+    member_session_servers,
 )
 
 MEMBER_KEY = "dashboard_member-autofix"
@@ -62,6 +63,16 @@ class TestCapabilitySet:
 
 
 class TestMemberDispatchSessionServer:
+    def test_work_tools_share_identity_without_auto_approval(self):
+        servers = member_session_servers(MEMBER_KEY)
+        assert [entry["name"] for entry in servers] == [
+            MEMBER_DISPATCH_SERVER,
+            "kirocrew-work",
+        ]
+        assert servers[1]["env"] == servers[0]["env"]
+        assert "mcp-work" in servers[1]["args"]
+        assert all("autoApprove" not in entry for entry in servers)
+
     def test_entry_shape(self):
         entry = member_dispatch_session_server(MEMBER_KEY)
         assert entry is not None
@@ -170,13 +181,16 @@ class TestIsMemberSessionKey:
 class TestKasMemberProjection:
     SPEC = {"tools": ["@kirocrew-core"], "allowedTools": ["@kirocrew-core"]}
 
-    def test_tools_gains_the_dashboard_server(self):
+    def test_tools_gain_session_control_and_work_without_work_auto_approval(self):
         out = to_client_custom_agent("a", dict(self.SPEC), "p", member_dispatch=True)
         assert "@kirocrew-dashboard" in out["tools"]
+        assert "@kirocrew-work" in out["tools"]
+        assert "kirocrew-work" not in str(out.get("permissions") or {})
 
     def test_default_projection_is_untouched(self):
         out = to_client_custom_agent("a", dict(self.SPEC), "p")
         assert "@kirocrew-dashboard" not in out["tools"]
+        assert "@kirocrew-work" not in out["tools"]
         perms = out.get("permissions") or {}
         assert not any("kirocrew-dashboard" in str(v) for v in perms.values()), perms
 
@@ -225,7 +239,7 @@ class TestClaudeMemberAppend:
 
     def test_member_session_gains_the_entry(self):
         out = self._run(_ClientStub())
-        assert [e["name"] for e in out][-1] == MEMBER_DISPATCH_SERVER
+        assert [e["name"] for e in out][-2:] == [MEMBER_DISPATCH_SERVER, "kirocrew-work"]
         assert {"name": "KIROCREW_SESSION_KEY", "value": MEMBER_KEY} in out[-1]["env"]
 
     def test_non_member_session_is_untouched(self):
@@ -257,13 +271,12 @@ class TestClaudeMemberAppend:
         stub.backend = ACP_BACKEND_CODEX
         assert self._run(stub) == _base_servers()
 
-    def test_same_named_entry_is_replaced_not_duplicated(self):
+    @pytest.mark.parametrize("name", [MEMBER_DISPATCH_SERVER, "kirocrew-work"])
+    def test_same_named_entry_is_replaced_not_duplicated(self, name):
         stub = _ClientStub()
-        servers = _base_servers() + [
-            {"name": MEMBER_DISPATCH_SERVER, "command": "old", "args": [], "env": []}
-        ]
+        servers = _base_servers() + [{"name": name, "command": "old", "args": [], "env": []}]
         out = AcpClient._append_member_dispatch_server(stub, servers)
-        matches = [e for e in out if e["name"] == MEMBER_DISPATCH_SERVER]
+        matches = [e for e in out if e["name"] == name]
         assert len(matches) == 1
         assert matches[0]["command"] != "old"
 

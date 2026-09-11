@@ -852,6 +852,14 @@ Exit criteria:
 
 ### Phase 4 — the surfaces
 
+The member-scoped Tasks implementation in
+[crew-mode.md](../system-specs/modules/crew-mode.md#member-tasks) exposes the
+existing item and event projection through a separate owner-only route. It adds
+task capture and explicit steering, and includes worker keys for navigation
+through the existing member ownership check. This is narrower than this phase:
+channels, take-over, watch-based waking and retirement of the original conductor
+flow remain outside that implementation.
+
 Scope: the Crew page item table and event list, including the open channels with their expiry and remaining budget and any outstanding `request` awaiting a conductor's answer; the `goal-conductor/SKILL.md` rewrite replacing the transcript-reading patrol with a ledger read and adding the dispatch rule (leaf → `kirocrew-worker`, decomposable → `kirocrew-conductor` under the depth cap, specialist crew → that crew, with the transcript fallback named for a crew that does not mount `@kirocrew-work`); deletion of `ledger_entry.py` and its tests; a module spec in `docs/system-specs/modules/`, added to that directory's index.
 
 Exit criteria:

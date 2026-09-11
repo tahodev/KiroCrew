@@ -6,9 +6,10 @@ Three ledgers carry that name, and they are not interchangeable.
 module is the third: a record two parties write and neither owns, so that a
 conductor learns what a worker did as DATA instead of reading its transcript.
 
-This module is the STORAGE layer only. Its one importer is
-``dashboard/handlers/work_ledger.py``, which serves the ``/api/work-ledger``
-routes; the MCP tools in :mod:`kiro_crew.mcp_work` (``work_brief``,
+This module is the STORAGE layer only. Its dashboard importers are
+``dashboard/handlers/work_ledger.py`` for the agent-only routes and
+``dashboard/handlers/member_work.py`` for the owner's member task board.
+The MCP tools in :mod:`kiro_crew.mcp_work` (``work_brief``,
 ``work_report``, ``work_ledger_read``, ``work_ledger_record``) reach it only
 through those routes. Every write therefore passes the two entry points below,
 so the writer-ownership rule is enforced in one place.

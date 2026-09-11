@@ -10,9 +10,23 @@ swallow it, so neither the lines within this function nor the order in which
 
 from __future__ import annotations
 
+from typing import Awaitable, Callable
+
 from aiohttp import web
 
 from kiro_crew.dashboard import handlers
+
+
+def _member_work(name: str) -> Callable[[web.Request], Awaitable[web.Response]]:
+    """Load the work-ledger subsystem only when its member tab is used."""
+
+    async def handle(request: web.Request) -> web.Response:
+        from kiro_crew.dashboard.handlers import member_work
+
+        return await getattr(member_work, name)(request)
+
+    handle.__name__ = name
+    return handle
 
 
 def register(app: web.Application) -> None:
@@ -58,6 +72,8 @@ def register(app: web.Application) -> None:
     app.router.add_get("/api/members/{slug}/activity", handlers.api_member_activity)
     app.router.add_get("/api/members/{slug}/rules", handlers.api_member_rules_get)
     app.router.add_put("/api/members/{slug}/rules", handlers.api_member_rules_put)
+    app.router.add_get("/api/members/{slug}/work", _member_work("api_member_work"))
+    app.router.add_post("/api/members/{slug}/work", _member_work("api_member_work_create"))
 
     # Crew appearance library: the dashboard's own pack store, separate from
     # Crew Companion's. On the dashboard router so a crew's face renders while

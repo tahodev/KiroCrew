@@ -587,10 +587,13 @@ export function usePanelTabs(
      *  on the first pinned view, and it is never "repaired" away by `syncPinned`
      *  for not being a stored tab. */
     leadingId?: string
+    /** Other host-owned focus targets that are never stored as document tabs. */
+    leadingIds?: readonly string[]
   },
 ) {
   const key = bucketKey(slotKey)
   const leadingId = opts?.leadingId
+  const leadingIds = opts?.leadingIds
   const bySlot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const { tabs: storedTabs, activeId } = bySlot[key] ?? EMPTY_BUCKET
   // View-tab labels are re-resolved from `kind` on every read so the strip is in
@@ -692,7 +695,7 @@ export function usePanelTabs(
       // Refocus if the active tab was a pinned view that just went away. The
       // host's leading tab is a valid focus even though it is never a stored
       // tab; a strip with no usable focus lands on it (else the first pinned).
-      const activeId = b.activeId && (b.activeId === leadingId || nextTabs.some(t => t.id === b.activeId))
+      const activeId = b.activeId && (b.activeId === leadingId || leadingIds?.includes(b.activeId) || nextTabs.some(t => t.id === b.activeId))
         ? b.activeId
         : (leadingId ?? (nextTabs.length ? nextTabs[0].id : null))
       // Bail if nothing actually changed (id sequence + focus) — avoids churn.
@@ -701,7 +704,7 @@ export function usePanelTabs(
       if (sameOrder && activeId === b.activeId) return b
       return { tabs: nextTabs, activeId }
     })
-  }, [update, leadingId])
+  }, [update, leadingId, leadingIds])
 
   const openFile = useCallback((path: string, content: string, slot: string | null = null, opts?: { replaceId?: string; line?: number; endLine?: number; diffMode?: boolean }) => {
     // `revealLine` is always present in the object, `undefined` when absent:

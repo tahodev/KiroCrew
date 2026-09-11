@@ -14871,5 +14871,52 @@
     "resolve_explanation": "保留当前值。应用后记录此决定，并关闭其待处理提案。",
     "forget_count": "忘记所选记忆：{{count}}",
     "retry_preview_page": "重试预览页面"
+  },
+  "memberTasks": {
+    "board": "任务看板",
+    "connecting": "正在连接成员会话…",
+    "create": "创建任务",
+    "criteria": "验收标准",
+    "decision": "决定：{{decision}}",
+    "description": "创建任务、发送指示并跟踪工作代理的报告。验收后才算完成。 使用私有记忆的成员暂不支持自动跟踪工作代理的进度。",
+    "empty": "还没有任务。创建一个任务开始吧。",
+    "history": "活动",
+    "lanes": {
+      "blocked": "受阻",
+      "closed": "已关闭",
+      "done": "已完成",
+      "progress": "进行中",
+      "review": "待审核",
+      "todo": "待办"
+    },
+    "new": "新建任务",
+    "next": "下一步：{{next}}",
+    "open_worker": "打开工作代理会话",
+    "queued": "指示已排队。成员报告后会更新进度。",
+    "refresh": "刷新任务",
+    "saving": "正在保存…",
+    "send": "发送指示",
+    "send_refused": "指示未被接受。",
+    "send_uncertain": "无法确认是否送达。再次发送前先查看会话；指示仍保留在这里。",
+    "sending": "正在发送…",
+    "sent": "指示已发送。成员报告后会更新进度。",
+    "stale": "等待更新",
+    "start": "发送任务",
+    "start_instruction": "开始此任务。读取 `work_ledger_read`，通过 `work_ledger_record` 记录决定，并在派发前绑定能使用 `work_brief` 和 `work_report` 的工作代理。接受任务前核实验收标准。在会话中说明不可用的工具或派发限制。",
+    "steer_member": "给成员的指示",
+    "steer_task": "“{{title}}”的指示",
+    "tab": "任务",
+    "task_context": "任务 {{id}}：{{title}}\n验收标准：{{criteria}}\n使用现有工作账本条目，不要重复创建。",
+    "title": "任务标题",
+    "toggle_closed": "展开或隐藏已关闭任务",
+    "updated": "更新时间：{{date}}",
+    "verdicts": {
+      "error": "验收检查出错",
+      "fail": "验收未通过",
+      "pass": "验收通过",
+      "pending": "等待验收",
+      "refused": "验收被拒绝"
+    },
+    "worker_missing": "协调代理不可用"
   }
 }

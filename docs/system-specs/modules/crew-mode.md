@@ -127,6 +127,62 @@ The loader is defensive about hand-edited config: a non-string `model` or
 `triggers` collapses to `""`, an unknown `reasoning_effort` collapses to inherit,
 and a junk watchdog override collapses to `0`.
 
+## Member tasks
+
+The right panel offers Tasks beside Crew summary after the member's thread is
+confirmed. Both tabs describe the selected member. Tasks uses the existing
+conductor work ledger. It polls every five seconds while visible. Cards show acceptance
+criteria, worker reports, decisions, verdicts, artifacts and recent events;
+opening a worker uses the same chat navigation as Crew summary.
+
+To do means unbound; In progress means bound; Blocked includes worker questions;
+Review means a worker reported done without a failed verdict; Done requires an
+accepted terminal state. Rejected and abandoned items are kept under Closed.
+These are projections of ledger fields, not freely draggable states. Sending
+instructions never advances a card optimistically.
+The ledger's existing per-conductor item limit still applies, including closed
+items; capture reports a full ledger without dropping history or the new draft.
+
+`GET /api/members/{slug}/work?member=<exact-name>&slot=<confirmed-slot>`
+returns the member's ledger plus its session checkpoint. The owner-only POST
+on the same path captures a title and acceptance criteria as an open item with
+`human_approval` acceptance. The supplied slot is a consistency check, never a
+ledger selector: the handler derives the current generation from config,
+checks the protected DM binding, live member slot and private memory proof,
+and revalidates after asynchronous reads. App and internal callers are refused;
+the existing MCP-only `/api/work-ledger` authorization is unchanged.
+
+Creation saves a task without sending a turn. Send task sends its existing item
+id and criteria to the member through the normal steering transport. Additional
+instructions can target the selected task or the member. Rejected or uncertain
+sends retain their drafts; an uncertain receipt directs the owner to check the
+conversation before retrying. Task and instruction drafts are scoped by exact
+member and conversation generation. The dashboard's in-memory store retains
+drafts and delivery outcomes across tab, member, overlay and route changes,
+including a response that arrives after leaving the member. A page reload clears
+this temporary state. Worker navigation uses the existing leave guard for other
+open editors. Acceptance failures use `ErrorNotice`; agent help can leave the
+route without losing these task drafts.
+
+Response redaction walks the decoded structure. It masks credential-bearing
+strings and named credential values without parsing redacted text as JSON.
+
+On harnesses already supporting member session injection, `member_session_servers`
+mounts `kirocrew-work` alongside session control with the same session identity,
+gateway port and data home. Work tools gain no auto-approval. KAS names both
+servers in its tool projection. Other sessions and unsupported injection paths
+keep their existing templates. Active sessions receive the mount on their next
+session creation or resume. Worker reporting still requires a worker with work
+tools and a binding created by its conductor. Private-memory dispatch restrictions
+remain enforced; task creation or steering does not grant a forbidden dispatch.
+The UI states that automatic worker progress is unavailable for private members.
+Send task requests work within the member's permissions and asks it to explain
+unavailable dispatch.
+Capture and steering therefore remain usable where automatic worker progress is
+unavailable; a scoped worker-binding path is outside this board's contract.
+Worker reports do not wake the conductor, so continuous autonomous acceptance
+still depends on the member's patrol or another turn.
+
 ## Selection: the `select_crew` contract
 
 `select_crew` has two modes, both answered as JSON by `_do_select_crew`.

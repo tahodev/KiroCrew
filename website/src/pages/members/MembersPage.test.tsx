@@ -20,6 +20,7 @@ vi.mock('../../api/client', () => ({
   api: {
     members: vi.fn(),
     memberThread: vi.fn(),
+    memberWork: vi.fn(),
     memberActivity: vi.fn(() => Promise.resolve({ slug: '', member: '', capped: false, entries: [] })),
     crons: vi.fn(() => Promise.resolve({ jobs: [] })),
     webhooks: vi.fn(() => Promise.resolve({ tokens: [] })),
@@ -548,6 +549,43 @@ describe('MembersPage thread', () => {
 })
 
 describe('MembersPage side panel (Crew summary tab) and edit jump', () => {
+  it('retains task drafts when opening a worker and returning to the Members route', async () => {
+    vi.mocked(api.members).mockResolvedValue({ members: [row()], default_agent: 'kirocrew' })
+    vi.mocked(api.memberThread).mockImplementation(echoThread)
+    vi.mocked(api.memberWork).mockResolvedValue({
+      slot_key: 'member-oncall', conductor: null, checkpoint: {},
+      limits: { title: 200, criteria: 4000 },
+      items: [{
+        item_id: 'work-1', title: 'Review checkout', state: 'open', status: 'progress',
+        acceptance: { kind: 'human_approval', description: 'Checks pass' },
+        worker_session_key: 'dashboard_worker-one', verdict: null, decision: '',
+        summary: '', artifacts: {}, pr: null, created_at: '', last_report_at: null, closed_at: null,
+      }],
+    })
+    function WorkerRoute() {
+      const navigate = useNavigate()
+      return <button onClick={() => navigate('/members?member=oncall')}>Return to member</button>
+    }
+    renderWithProviders(<>
+      <Routes>
+        <Route path="/members" element={<MembersPage />} />
+        <Route path="/chat" element={<WorkerRoute />} />
+      </Routes>
+      <LocationProbe />
+    </>, { route: '/members?member=oncall' })
+    fireEvent.click(await screen.findByRole('tab', { name: 'Tasks' }))
+    fireEvent.click(await screen.findByText('Review checkout'))
+    fireEvent.change(screen.getByLabelText('Instructions for “Review checkout”'), { target: { value: 'Keep this steering draft' } })
+    fireEvent.click(screen.getByRole('button', { name: 'New task' }))
+    fireEvent.change(screen.getByLabelText('Task title'), { target: { value: 'Keep this task title' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open worker conversation' }))
+    expect(currentUrl()).toBe('/chat?sid=worker-one')
+    fireEvent.click(screen.getByRole('button', { name: 'Return to member' }))
+    fireEvent.click(await screen.findByRole('tab', { name: 'Tasks' }))
+    expect(await screen.findByLabelText('Task title')).toHaveValue('Keep this task title')
+    expect(screen.getByLabelText('Instructions for “Review checkout”')).toHaveValue('Keep this steering draft')
+  })
+
   it('shows the read-only config summary and the usable V1 migration choice', async () => {
     await renderPage([row({ bound: true, slot_key: 'member-oncall', model: 'claude-opus-5', memory_version: 1 })])
     fireEvent.click(await rosterRow('oncall'))
@@ -683,9 +721,9 @@ describe('MembersPage side panel (Crew summary tab) and edit jump', () => {
     await renderPage([row({ bound: true, slot_key: 'member-oncall' })])
     fireEvent.click(await rosterRow('oncall'))
     await screen.findByTestId('member-crew-summary')
-    // Pinned block: Crew summary, Artifacts, Files — and NOT Changes.
+    // Pinned block: Crew summary, Tasks, Artifacts, Files — and NOT Changes.
     expect(screen.getAllByRole('tab').map((t) => t.getAttribute('aria-label'))).toEqual([
-      'Crew summary', 'Artifacts', 'Files',
+      'Crew summary', 'Tasks', 'Artifacts', 'Files',
     ])
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Open side panel tab' }),

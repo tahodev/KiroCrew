@@ -6570,5 +6570,52 @@
     "resolve_explanation": "Keep the current value. Applying records this decision and closes its pending proposals.",
     "forget_count": "Forget selected memories: {{count}}",
     "retry_preview_page": "Retry preview page"
+  },
+  "memberTasks": {
+    "tab": "Tasks",
+    "new": "New task",
+    "refresh": "Refresh tasks",
+    "title": "Task title",
+    "criteria": "Acceptance criteria",
+    "saving": "Saving…",
+    "create": "Create task",
+    "empty": "No tasks yet. Create one to get started.",
+    "board": "Task board",
+    "toggle_closed": "Show or hide closed tasks",
+    "worker_missing": "Conductor unavailable",
+    "stale": "Awaiting an update",
+    "open_worker": "Open worker conversation",
+    "history": "Activity",
+    "steer_member": "Instructions for the member",
+    "start": "Send task",
+    "sending": "Sending…",
+    "send": "Send instructions",
+    "lanes": {
+      "todo": "To do",
+      "progress": "In progress",
+      "blocked": "Blocked",
+      "review": "Review",
+      "done": "Done",
+      "closed": "Closed"
+    },
+    "verdicts": {
+      "pass": "Acceptance passed",
+      "fail": "Acceptance failed",
+      "pending": "Acceptance pending",
+      "refused": "Acceptance refused",
+      "error": "Acceptance check error"
+    },
+    "description": "Create tasks, send instructions, and follow worker reports. Done requires acceptance. Automatic worker progress is unavailable for members with private memory.",
+    "connecting": "Connecting to the member’s conversation…",
+    "next": "Next: {{next}}",
+    "decision": "Decision: {{decision}}",
+    "updated": "Updated {{date}}",
+    "steer_task": "Instructions for “{{title}}”",
+    "send_refused": "The instructions were not accepted.",
+    "send_uncertain": "Delivery could not be confirmed. Check the conversation before sending again; your instructions are still here.",
+    "queued": "Instructions queued. Progress updates when the member reports.",
+    "sent": "Instructions sent. Progress updates when the member reports.",
+    "task_context": "Task {{id}}: {{title}}\nAcceptance criteria: {{criteria}}\nUse the existing work ledger item; do not create a duplicate.",
+    "start_instruction": "Start this task. Read `work_ledger_read`, record decisions with `work_ledger_record`, and bind a worker that can use `work_brief` and `work_report` before dispatch. Verify the acceptance criteria before accepting. Report any unavailable tools or dispatch restriction in our conversation."
   }
 }

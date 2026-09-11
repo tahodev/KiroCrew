@@ -33,7 +33,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Check, ChevronRight, Circle, Clock, ExternalLink, Goal, MessageCircleQuestionMark, Pencil, Route, Star, UserPlus, Users, Webhook, Zap } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, Circle, Clock, ExternalLink, Goal, ListTodo, MessageCircleQuestionMark, Pencil, Route, Star, UserPlus, Users, Webhook, Zap } from 'lucide-react'
 import { PanelRightSolid } from '../../components/icons/panels'
 import { useTranslation } from 'react-i18next'
 import { api, type MemberRosterRow, type WebhookTokenEntry } from '../../api/client'
@@ -59,8 +59,8 @@ import { fmtDateTimeNumeric, fmtList, fmtTime } from '../../i18n/format'
 import { usePersistedBool } from '../../hooks/usePersistedBool'
 import { usePersistedString } from '../../hooks/usePersistedString'
 import { findReport, type ErrorReport } from '../../utils/errorReport'
-import { useAppDispatch, useAppSelector } from '../../store'
-import { markSlotRead } from '../../store/dashboardSlice'
+import { useAppDispatch, useAppSelector, useAppStore } from '../../store'
+import { markSlotRead, setMemberTaskDraft } from '../../store/dashboardSlice'
 import CrewAvatar from '../../components/CrewAvatar'
 import CrewStateAvatar from '../../components/CrewStateAvatar'
 import ChatPane from '../../components/ChatPane'
@@ -90,6 +90,7 @@ import { useColumnResize } from '../../hooks/useColumnResize'
 import { loadColumnWidth } from '../../lib/columnWidth'
 import { tabStatus, type TabStatus } from '../../lib/sessionTabs'
 import { lastActivityEpoch } from '../chat/sessionOrder'
+import MemberTasks, { emptyMemberTaskDraft, type MemberTaskDraft } from './MemberTasks'
 import { activityDayLabel, floorCountText, groupActivityDays, projectLabel } from './activityDays'
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage'
 
@@ -167,6 +168,8 @@ const ROSTER_WIDTH_KEY = 'mc-members-roster-width'
  *  session-summary view, a different thing (that one summarises a transcript;
  *  this one describes a member). */
 export const CREW_SUMMARY_TAB_ID = 'crew-summary'
+export const CREW_TASKS_TAB_ID = 'crew-tasks'
+const MEMBER_PANEL_TABS = [CREW_SUMMARY_TAB_ID, CREW_TASKS_TAB_ID] as const
 /** Chat-panel views this page withholds from the strip and the + menu
  *  (`SidePanel.hiddenViews`). The unfed half is DERIVED, not enumerated: every
  *  view `VIEW_DATA_SOURCE` classifies as `chat-transcript` (Changes / Issues /
@@ -625,6 +628,15 @@ export default function MembersPage() {
     [filter, starredOnly, sourceFilter, statusFilter, sort],
   )
   const activeSlot = active ? threadOutcome?.slot_key ?? '' : ''
+  const taskStore = useAppStore()
+  const taskDraftKey = JSON.stringify([active?.name, activeSlot])
+  const taskDraft = useAppSelector(state => state.dashboard.memberTaskDrafts?.[taskDraftKey])
+  const updateTaskDraft = useCallback((change: (previous: MemberTaskDraft) => MemberTaskDraft) => {
+    const previous = taskStore.getState().dashboard.memberTaskDrafts?.[taskDraftKey]
+    taskStore.dispatch(setMemberTaskDraft({
+      key: taskDraftKey, draft: change(previous ?? emptyMemberTaskDraft()),
+    }))
+  }, [taskStore, taskDraftKey])
   // Two distinct verdicts with two different sentences: a collision is a
   // fact about the roster (the slug's thread belongs to another crew), a
   // failed POST is a transport error. Both render through ErrorNotice so
@@ -735,6 +747,7 @@ export default function MembersPage() {
   // own failure notice (its pre-existing contract, see activeThreadFailed).
   const confirmedSlot =
     active && (pendingThreadFor === active.name || activeThreadFailed) ? '' : activeSlot
+  const memberConfirmed = !!confirmedSlot
 
   // Sessions this member is driving: every live slot whose `created_by` is the
   // member's DM slot key. A member dispatches its real work into worker
@@ -771,7 +784,9 @@ export default function MembersPage() {
   // and every slot-bound view is withheld (`hiddenViews` below); the Crew
   // summary needs no slot and stays.
   const panelTabDescriptors = usePanelTabDescriptors()
-  const tabsCtl = usePanelTabs(activeSlot || null, panelTabDescriptors, { leadingId: CREW_SUMMARY_TAB_ID })
+  const tabsCtl = usePanelTabs(activeSlot || null, panelTabDescriptors, {
+    leadingId: CREW_SUMMARY_TAB_ID, leadingIds: MEMBER_PANEL_TABS,
+  })
   // The member slot's project directory (the WS slots frame carries it) roots
   // the Files tab and is the cwd a Terminal tab spawns in. Only a record from
   // the CURRENT snapshot counts: a reconnect drops `slotsLoaded` but keeps the
@@ -844,6 +859,7 @@ export default function MembersPage() {
   // store, and the summary must load when it is the one on screen.
   const [shownTabId, setShownTabId] = useState<string | null>(null)
   const summaryVisible = panelVisible && (shownTabId ?? tabsCtl.activeId) === CREW_SUMMARY_TAB_ID
+  const tasksVisible = panelVisible && (shownTabId ?? tabsCtl.activeId) === CREW_TASKS_TAB_ID
   const closeOverlay = useCallback(() => setOverlayOpen(false), [])
   // Mount continuity — the chat page's rule, verbatim: a live Browser tab (its
   // WebContentsView) or a body-owning app tab (any slot's) cannot survive a
@@ -2518,6 +2534,28 @@ export default function MembersPage() {
             onArtifactOpen: openArtifact,
             onFileSave: saveFile,
             leadingTab,
+            leadingTabs: [
+              leadingTab,
+              ...(memberConfirmed ? [{
+                id: CREW_TASKS_TAB_ID,
+                title: t('memberTasks.tab'),
+                icon: <ListTodo className="lucide-inline" />,
+                keepMounted: true,
+                render: () => (
+                  <MemberTasks
+                    key={taskDraftKey}
+                    slug={active.slug}
+                    member={active.name}
+                    slot={confirmedSlot}
+                    enabled={memberConfirmed}
+                    visible={tasksVisible}
+                    draft={taskDraft ?? emptyMemberTaskDraft()}
+                    updateDraft={updateTaskDraft}
+                    onOpenWorker={(key) => leave(() => navigate(`/chat?sid=${encodeURIComponent(key)}`))}
+                  />
+                ),
+              }] : []),
+            ],
             slotTitle: active.name,
             canDockBottom: false,
           }

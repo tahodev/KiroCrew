@@ -893,6 +893,14 @@ gates nothing an unreferenced server was not already denying.
 every tool in it. So a capability that must be grantable *separately* belongs in
 a server of its own, not alongside a set someone might want for other reasons.
 
+Crew Members additionally assigns `kirocrew-work` at the existing per-session
+member injection seam, alongside `kirocrew-dashboard`. Both carry the member's
+strict session identity, gateway port and data-home override. This assignment
+does not edit the shared template or grant work tools auto-approval. The worker
+tools still resolve exactly one binding, and conductor tools still address only
+their caller's ledger. The owner task board uses separate member-scoped dashboard
+routes; it never relaxes the agent-only work-ledger routes.
+
 **A grant is not authority over everything the tools can name.** Assignment says
 which agent may call a set; it does not say what that agent may reach. The
 dashboard set resolves the calling session strictly — only a gateway-injected

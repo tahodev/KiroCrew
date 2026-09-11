@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { ApiError } from '../api/apiError'
 import { sanitizeLlmOutput, isUnsafeKey } from '../utils/sanitize'
 import type { StatusData, ChatSlot, TodoList, McpSessionReport } from '../types'
+import type { MemberTaskDraft } from '../types/memberWork'
 import type { SessionColorMode, PaletteName, DefaultColorSetting, IntensityName } from '../utils/sessionColors'
 
 export interface SubagentDetail {
@@ -12,6 +13,8 @@ export interface SubagentDetail {
 }
 
 interface DashboardState {
+  /** In-memory drafts and delivery outcomes survive leaving the Members route. */
+  memberTaskDrafts?: Record<string, MemberTaskDraft>
   status: StatusData | null
   /** The ad-hoc auto-approve duration this tab last saved in Settings, or
    *  undefined when it has saved none. Applied over every status write: the
@@ -222,6 +225,10 @@ const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState,
   reducers: {
+    setMemberTaskDraft(state, action: PayloadAction<{ key: string; draft: MemberTaskDraft }>) {
+      state.memberTaskDrafts ??= {}
+      state.memberTaskDrafts[action.payload.key] = action.payload.draft
+    },
     // Two writers feed this reducer with different field sets. The HTTP
     // `/api/status` reply carries the configured ad-hoc duration and whether
     // policy permits `until_shutdown`; the 5-second WebSocket `dashboard` frame
@@ -544,7 +551,7 @@ const dashboardSlice = createSlice({
   },
 })
 
-export const { sseStatus, sseYolo, setYoloDuration, sseConnected, sseDisconnected, sseSlots, setSidebarOrder, sseTodoUpdate, sseMcpReportUpdate, touchSlotActivity, setChannelTrusted, sseSlotTitle, addSlotOptimistic, removeSlotOptimistic, updateSlot, updateSlotFolder, updateSlotPin, triggerRefresh, markSlotUnread, markSlotRead, setUpdateProgress,
+export const { setMemberTaskDraft, sseStatus, sseYolo, setYoloDuration, sseConnected, sseDisconnected, sseSlots, setSidebarOrder, sseTodoUpdate, sseMcpReportUpdate, touchSlotActivity, setChannelTrusted, sseSlotTitle, addSlotOptimistic, removeSlotOptimistic, updateSlot, updateSlotFolder, updateSlotPin, triggerRefresh, markSlotUnread, markSlotRead, setUpdateProgress,
   setDesktopUpdateAvailable, sseSubagentStatus, sseSubagentText, sseSlotColor, setSessionDefaultColor, setSessionColorsMode, setSessionColorsPalette, setSessionColorsIntensity, setEnabledAppIds, patchSlotSourceLinks, patchSlotLink } = dashboardSlice.actions
 
 /**

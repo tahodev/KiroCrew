@@ -15062,5 +15062,52 @@
     "resolve_explanation": "Aktuellen Wert behalten. Anwenden speichert diese Entscheidung und schließt ausstehende Vorschläge.",
     "forget_count": "Ausgewählte Erinnerungen vergessen: {{count}}",
     "retry_preview_page": "Vorschauseite erneut laden"
+  },
+  "memberTasks": {
+    "board": "Aufgabenboard",
+    "connecting": "Verbindung zur Unterhaltung des Mitglieds wird hergestellt…",
+    "create": "Aufgabe erstellen",
+    "criteria": "Abnahmekriterien",
+    "decision": "Entscheidung: {{decision}}",
+    "description": "Erstelle Aufgaben, sende Anweisungen und verfolge Berichte der ausführenden Agenten. Erledigte Aufgaben müssen abgenommen sein. Für Mitglieder mit privatem Speicher ist keine automatische Fortschrittsanzeige für Worker verfügbar.",
+    "empty": "Noch keine Aufgaben. Erstelle eine, um loszulegen.",
+    "history": "Aktivität",
+    "lanes": {
+      "blocked": "Blockiert",
+      "closed": "Geschlossen",
+      "done": "Erledigt",
+      "progress": "In Arbeit",
+      "review": "Prüfung",
+      "todo": "Offen"
+    },
+    "new": "Neue Aufgabe",
+    "next": "Als Nächstes: {{next}}",
+    "open_worker": "Unterhaltung des ausführenden Agenten öffnen",
+    "queued": "Anweisungen eingereiht. Der Fortschritt wird nach einem Bericht des Mitglieds aktualisiert.",
+    "refresh": "Aufgaben aktualisieren",
+    "saving": "Speichern…",
+    "send": "Anweisungen senden",
+    "send_refused": "Die Anweisungen wurden nicht angenommen.",
+    "send_uncertain": "Die Zustellung konnte nicht bestätigt werden. Prüfe vor erneutem Senden die Unterhaltung; deine Anweisungen stehen noch hier.",
+    "sending": "Senden…",
+    "sent": "Anweisungen gesendet. Der Fortschritt wird nach einem Bericht des Mitglieds aktualisiert.",
+    "stale": "Warten auf Aktualisierung",
+    "start": "Aufgabe senden",
+    "start_instruction": "Starte diese Aufgabe. Lies `work_ledger_read`, halte Entscheidungen mit `work_ledger_record` fest und binde vor der Zuweisung einen ausführenden Agenten mit `work_brief` und `work_report`. Prüfe die Kriterien vor der Abnahme. Melde nicht verfügbare Werkzeuge oder Zuweisungsbeschränkungen in unserer Unterhaltung.",
+    "steer_member": "Anweisungen für das Mitglied",
+    "steer_task": "Anweisungen für „{{title}}“",
+    "tab": "Aufgaben",
+    "task_context": "Aufgabe {{id}}: {{title}}\nAbnahmekriterien: {{criteria}}\nVerwende den bestehenden Eintrag im Arbeitsjournal; erstelle kein Duplikat.",
+    "title": "Aufgabentitel",
+    "toggle_closed": "Geschlossene Aufgaben ein- oder ausblenden",
+    "updated": "Aktualisiert {{date}}",
+    "verdicts": {
+      "error": "Fehler bei der Abnahmeprüfung",
+      "fail": "Abnahme fehlgeschlagen",
+      "pass": "Abnahme bestanden",
+      "pending": "Abnahme ausstehend",
+      "refused": "Abnahme verweigert"
+    },
+    "worker_missing": "Koordinator nicht verfügbar"
   }
 }

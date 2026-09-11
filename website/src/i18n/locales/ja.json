@@ -14871,5 +14871,52 @@
     "resolve_explanation": "現在の値を保持します。適用すると判断を記録し、保留中の提案を終了します。",
     "forget_count": "選択したメモリを忘れる: {{count}}",
     "retry_preview_page": "プレビューページを再試行"
+  },
+  "memberTasks": {
+    "board": "タスクボード",
+    "connecting": "メンバーの会話に接続中…",
+    "create": "タスクを作成",
+    "criteria": "受け入れ基準",
+    "decision": "決定：{{decision}}",
+    "description": "タスクを作成し、指示を送り、実行エージェントの報告を確認できます。完了には受け入れが必要です。 非公開メモリを使用するメンバーでは、ワーカーの進捗を自動的に追跡できません。",
+    "empty": "タスクはまだありません。作成して始めましょう。",
+    "history": "アクティビティ",
+    "lanes": {
+      "blocked": "ブロック中",
+      "closed": "終了",
+      "done": "完了",
+      "progress": "進行中",
+      "review": "レビュー",
+      "todo": "未着手"
+    },
+    "new": "新しいタスク",
+    "next": "次のステップ：{{next}}",
+    "open_worker": "実行エージェントの会話を開く",
+    "queued": "指示をキューに追加しました。メンバーの報告後に進捗が更新されます。",
+    "refresh": "タスクを更新",
+    "saving": "保存中…",
+    "send": "指示を送信",
+    "send_refused": "指示は受け付けられませんでした。",
+    "send_uncertain": "配信を確認できませんでした。再送信する前に会話を確認してください。指示はここに残っています。",
+    "sending": "送信中…",
+    "sent": "指示を送信しました。メンバーの報告後に進捗が更新されます。",
+    "stale": "更新待ち",
+    "start": "タスクを送信",
+    "start_instruction": "このタスクを開始してください。`work_ledger_read` を読み、`work_ledger_record` で決定を記録し、作業を割り当てる前に `work_brief` と `work_report` を使える実行エージェントを紐付けてください。受け入れ前に基準を検証してください。利用できないツールや割り当て制限は、この会話で報告してください。",
+    "steer_member": "メンバーへの指示",
+    "steer_task": "「{{title}}」への指示",
+    "tab": "タスク",
+    "task_context": "タスク {{id}}：{{title}}\n受け入れ基準：{{criteria}}\n既存の作業台帳項目を使用し、重複を作成しないでください。",
+    "title": "タスク名",
+    "toggle_closed": "終了したタスクを表示または非表示",
+    "updated": "更新：{{date}}",
+    "verdicts": {
+      "error": "受け入れ確認エラー",
+      "fail": "受け入れ不合格",
+      "pass": "受け入れ合格",
+      "pending": "受け入れ待ち",
+      "refused": "受け入れ拒否"
+    },
+    "worker_missing": "調整エージェントを利用できません"
   }
 }

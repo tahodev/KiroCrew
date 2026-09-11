@@ -6,6 +6,14 @@ The ACP layer spans **five** modules: the legacy per-session client (`acp/client
 
 ## Backend Selection
 
+Member sessions on the existing member-dispatch capability set receive both
+session-control and work-ledger MCP servers from `members.member_session_servers`.
+The client and runtime apply these entries on creation and resume, replacing
+same-named pooled entries while retaining the member identity, data home and
+bound port. KAS includes both names in its projected tools; work tools receive
+no additional auto-approval. Permission-surface ownership and harness capability
+checks remain prerequisites. Ordinary sessions keep their existing server set.
+
 The trusted `private_memory` constructor flag is preserved from provider creation
 through client/runtime spawn and recovery. Only private member processes pass it
 to the sandbox; the default `False` keeps existing V1 spawn arguments. The OS

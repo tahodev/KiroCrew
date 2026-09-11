@@ -24,6 +24,19 @@ const demoTab = { kind: 'app:pippin:browser', appName: 'pippin', tabId: 'browser
 beforeEach(() => { __resetPanelTabs(); mock.descriptors = [] })
 
 describe('usePanelTabs', () => {
+  it('keeps either host tab selected when pinned views synchronize', () => {
+    const leadingIds = ['crew-summary', 'crew-tasks']
+    const { result } = renderHook(() => usePanelTabs('member-reviewer', [], {
+      leadingId: leadingIds[0], leadingIds,
+    }))
+    act(() => result.current.setActive('crew-tasks'))
+    act(() => result.current.syncPinned(['artifacts', 'files']))
+    expect(result.current.activeId).toBe('crew-tasks')
+    act(() => result.current.setActive('crew-summary'))
+    act(() => result.current.syncPinned(['artifacts', 'files']))
+    expect(result.current.activeId).toBe('crew-summary')
+  })
+
   it('starts empty with no active tab', () => {
     const { result } = renderHook(() => usePanelTabs(null, mock.descriptors))
     expect(result.current.tabs).toEqual([])

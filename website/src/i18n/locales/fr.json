@@ -15254,5 +15254,52 @@
     "resolve_explanation": "Conservez la valeur actuelle. Appliquer enregistre cette décision et clôt ses propositions en attente.",
     "forget_count": "Oublier les souvenirs sélectionnés : {{count}}",
     "retry_preview_page": "Réessayer la page d’aperçu"
+  },
+  "memberTasks": {
+    "board": "Tableau des tâches",
+    "connecting": "Connexion à la conversation du membre…",
+    "create": "Créer une tâche",
+    "criteria": "Critères d’acceptation",
+    "decision": "Décision : {{decision}}",
+    "description": "Crée des tâches, envoie des instructions et suis les rapports des agents exécutants. Une tâche terminée doit être acceptée. Le suivi automatique du travail des agents n’est pas disponible pour les membres disposant d’une mémoire privée.",
+    "empty": "Aucune tâche pour le moment. Crée-en une pour commencer.",
+    "history": "Activité",
+    "lanes": {
+      "blocked": "Bloquée",
+      "closed": "Close",
+      "done": "Terminée",
+      "progress": "En cours",
+      "review": "À vérifier",
+      "todo": "À faire"
+    },
+    "new": "Nouvelle tâche",
+    "next": "Suite : {{next}}",
+    "open_worker": "Ouvrir la conversation de l’agent exécutant",
+    "queued": "Instructions en attente. La progression sera actualisée quand le membre fera son rapport.",
+    "refresh": "Actualiser les tâches",
+    "saving": "Enregistrement…",
+    "send": "Envoyer les instructions",
+    "send_refused": "Les instructions n’ont pas été acceptées.",
+    "send_uncertain": "La réception n’a pas pu être confirmée. Vérifie la conversation avant de renvoyer ; tes instructions sont toujours ici.",
+    "sending": "Envoi…",
+    "sent": "Instructions envoyées. La progression sera actualisée quand le membre fera son rapport.",
+    "stale": "En attente d’une mise à jour",
+    "start": "Envoyer la tâche",
+    "start_instruction": "Démarre cette tâche. Lis `work_ledger_read`, consigne les décisions avec `work_ledger_record` et associe un agent exécutant capable d’utiliser `work_brief` et `work_report` avant de lui confier le travail. Vérifie les critères avant d’accepter. Signale les outils indisponibles ou restrictions d’affectation dans notre conversation.",
+    "steer_member": "Instructions pour le membre",
+    "steer_task": "Instructions pour « {{title}} »",
+    "tab": "Tâches",
+    "task_context": "Tâche {{id}} : {{title}}\nCritères d’acceptation : {{criteria}}\nUtilise l’entrée existante du registre de travail ; ne crée pas de doublon.",
+    "title": "Titre de la tâche",
+    "toggle_closed": "Afficher ou masquer les tâches closes",
+    "updated": "Mise à jour {{date}}",
+    "verdicts": {
+      "error": "Erreur de vérification de l’acceptation",
+      "fail": "Acceptation échouée",
+      "pass": "Acceptation réussie",
+      "pending": "Acceptation en attente",
+      "refused": "Acceptation refusée"
+    },
+    "worker_missing": "Coordinateur indisponible"
   }
 }

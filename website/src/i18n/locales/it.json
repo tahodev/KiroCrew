@@ -15253,5 +15253,52 @@
     "resolve_explanation": "Mantieni il valore attuale. Applica registra questa decisione e chiude le proposte in sospeso.",
     "forget_count": "Dimentica i ricordi selezionati: {{count}}",
     "retry_preview_page": "Riprova la pagina di anteprima"
+  },
+  "memberTasks": {
+    "board": "Bacheca delle attività",
+    "connecting": "Connessione alla conversazione del membro…",
+    "create": "Crea attività",
+    "criteria": "Criteri di accettazione",
+    "decision": "Decisione: {{decision}}",
+    "description": "Crea attività, invia istruzioni e segui i rapporti degli agenti esecutori. Il completamento richiede accettazione. Il monitoraggio automatico del lavoro degli agenti non è disponibile per i membri con memoria privata.",
+    "empty": "Non ci sono ancora attività. Creane una per iniziare.",
+    "history": "Cronologia",
+    "lanes": {
+      "blocked": "Bloccata",
+      "closed": "Chiusa",
+      "done": "Completata",
+      "progress": "In corso",
+      "review": "Revisione",
+      "todo": "Da fare"
+    },
+    "new": "Nuova attività",
+    "next": "Prossimo passo: {{next}}",
+    "open_worker": "Apri conversazione dell’agente esecutore",
+    "queued": "Istruzioni in coda. I progressi si aggiornano quando il membro invia un rapporto.",
+    "refresh": "Aggiorna attività",
+    "saving": "Salvataggio…",
+    "send": "Invia istruzioni",
+    "send_refused": "Le istruzioni non sono state accettate.",
+    "send_uncertain": "Impossibile confermare la consegna. Controlla la conversazione prima di inviare di nuovo; le istruzioni sono ancora qui.",
+    "sending": "Invio…",
+    "sent": "Istruzioni inviate. I progressi si aggiornano quando il membro invia un rapporto.",
+    "stale": "In attesa di aggiornamenti",
+    "start": "Invia attività",
+    "start_instruction": "Avvia questa attività. Leggi `work_ledger_read`, registra le decisioni con `work_ledger_record` e associa un agente esecutore che possa usare `work_brief` e `work_report` prima di assegnare il lavoro. Verifica i criteri prima di accettare. Segnala strumenti non disponibili o restrizioni di assegnazione nella nostra conversazione.",
+    "steer_member": "Istruzioni per il membro",
+    "steer_task": "Istruzioni per «{{title}}»",
+    "tab": "Attività",
+    "task_context": "Attività {{id}}: {{title}}\nCriteri di accettazione: {{criteria}}\nUsa la voce esistente del registro di lavoro; non creare un duplicato.",
+    "title": "Titolo dell’attività",
+    "toggle_closed": "Mostra o nascondi attività chiuse",
+    "updated": "Aggiornata {{date}}",
+    "verdicts": {
+      "error": "Errore di verifica dell’accettazione",
+      "fail": "Accettazione fallita",
+      "pass": "Accettazione superata",
+      "pending": "Accettazione in attesa",
+      "refused": "Accettazione rifiutata"
+    },
+    "worker_missing": "Coordinatore non disponibile"
   }
 }

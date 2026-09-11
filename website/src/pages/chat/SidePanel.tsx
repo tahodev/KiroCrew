@@ -242,11 +242,12 @@ export interface SidePanelLeadingTab {
    *  session-summary view; the Members page uses `'crew-summary'`). */
   id: string
   title: string
+  /** Keep forms mounted across tab switches so their drafts survive. */
+  keepMounted?: boolean
   /** Strip glyph. A host may pass an identity (the member's avatar) rather than a
    *  kind glyph — this is the one chip whose icon `KIND_ICON` does not own. */
   icon: ReactNode
-  /** Body, rendered only while the tab is active (it is a query-driven view
-   *  like the category tabs, not a mounted editor). */
+  /** Body, rendered while active or retained invisibly when keepMounted is set. */
   render: () => ReactNode
 }
 
@@ -305,6 +306,8 @@ interface SidePanelProps {
    *  summary. Its `id` must also be handed to `usePanelTabs` as `leadingId` so
    *  a fresh strip opens on it and focus can fall back to it. */
   leadingTab?: SidePanelLeadingTab
+  /** Additional host-owned tabs, using the same focus and layout contract. */
+  leadingTabs?: readonly SidePanelLeadingTab[]
   /** Extra px the panel must keep clear to its left, on top of the shell's
    *  own reserve (`measureSidePanelReservedW`, which budgets the nav rail and a
    *  minimum chat pane). A host with more siblings in the row — the Members
@@ -464,7 +467,7 @@ export default function SidePanel({
   pins, pinsLoading, onJumpToPin, onUnpin,
   slotTitle, chatMode,
   expanded, fillWidth, canDockBottom = true,
-  leadingTab, extraReserveW = 0, hiddenViews, onActiveTabChange,
+  leadingTab, leadingTabs, extraReserveW = 0, hiddenViews, onActiveTabChange,
 }: SidePanelProps) {
   const { tabs, activeId: storedActiveId, openView, openPanelTab, openTerminal, setActive, closeTab, patchTab, setOrder, syncPinned } = tabsCtl
   // A permanent panel has no close control and answers Escape with nothing —
@@ -548,12 +551,16 @@ export default function SidePanel({
     return hiddenViews.has(kind)
   }, [hiddenViews])
   const visibleTabs = useMemo(() => (hiddenViews ? tabs.filter(t => !isWithheld(t.kind)) : tabs), [tabs, hiddenViews, isWithheld])
+  const hostTabs = useMemo(
+    () => leadingTabs ?? (leadingTab ? [leadingTab] : []),
+    [leadingTab, leadingTabs],
+  )
   const activeId = useMemo(() => {
     if (storedActiveId === null) return null
-    if (leadingTab && storedActiveId === leadingTab.id) return storedActiveId
+    if (hostTabs.some(tab => tab.id === storedActiveId)) return storedActiveId
     if (visibleTabs.some(t => t.id === storedActiveId)) return storedActiveId
-    return leadingTab?.id ?? visibleTabs[0]?.id ?? null
-  }, [storedActiveId, visibleTabs, leadingTab])
+    return hostTabs[0]?.id ?? visibleTabs[0]?.id ?? null
+  }, [storedActiveId, visibleTabs, hostTabs])
   // The fallback is REPORTED to the host, never written back into the store.
   // A host reads what the strip actually shows through `onActiveTabChange`
   // (the Members page gates the Crew summary's data reads on it), so a stored
@@ -724,19 +731,19 @@ export default function SidePanel({
           {/* The host's leading tab, ahead of the pinned views: same pinned
               chip (icon-only when inactive, no close control), never a
               Reorder item — it is the strip's identity, not a document. */}
-          {leadingTab && (
+          {hostTabs.map((tab, index) => (
             <TabChip
-              key={leadingTab.id}
-              tab={{ title: leadingTab.title }}
-              icon={leadingTab.icon}
-              active={leadingTab.id === activeId}
+              key={tab.id}
+              tab={{ title: tab.title }}
+              icon={tab.icon}
+              active={tab.id === activeId}
               closable={false}
               pinned
-              onSelect={() => setActive(leadingTab.id)}
+              onSelect={() => setActive(tab.id)}
               onClose={() => {}}
-              testId="side-panel-leading-tab"
+              testId={index === 0 ? 'side-panel-leading-tab' : `side-panel-leading-${tab.id}`}
             />
-          )}
+          ))}
           {pinnedTabs.map(t => (
             <TabChip key={t.id} tab={t} active={t.id === activeId} closable={false} pinned onSelect={() => setActive(t.id)} onClose={() => {}} />
           ))}
@@ -895,12 +902,17 @@ export default function SidePanel({
             category views: it is a query-driven summary, not an editor whose
             buffer a switch would lose. Scrolls itself — the host renders plain
             content, and this keeps the strip pinned above a long body. */}
-        {leadingTab && activeId === leadingTab.id && (
-          <div key={leadingTab.id} className="absolute inset-0 overflow-y-auto" data-testid="side-panel-leading-body">
-            {leadingTab.render()}
+        {hostTabs.filter(tab => tab.keepMounted || activeId === tab.id).map((tab, index) => (
+          <div
+            key={tab.id}
+            className="absolute inset-0 overflow-y-auto"
+            hidden={activeId !== tab.id}
+            data-testid={index === 0 && tab.id === hostTabs[0]?.id ? 'side-panel-leading-body' : `side-panel-leading-body-${tab.id}`}
+          >
+            {tab.render()}
           </div>
-        )}
-        {visibleTabs.length === 0 && !leadingTab && (
+        ))}
+        {visibleTabs.length === 0 && hostTabs.length === 0 && (
           /* Empty state: launcher — the available views themselves, roomy and
              clickable, instead of a hint pointing at the + menu. */
           <div className="flex items-center justify-center h-full px-6">
