@@ -82,6 +82,9 @@ _AMBIENT_READ_ALLOWLIST = frozenset(
     {
         # Baked into every overlay ``command``; fingerprinted as "python".
         ("_build_stub_entry", "sys.executable"),
+        # Explicit stub environment; a home change must invalidate the overlay.
+        ("_build_stub_entry", "config-name:config_dir"),
+        ("_rewrite_inputs_fingerprint", "config-name:config_dir"),
         # The fingerprint builder reading its own declared inputs.
         ("_rewrite_inputs_fingerprint", "os.environ:PATH"),
         ("_rewrite_inputs_fingerprint", "os.environ:PATHEXT"),
@@ -413,6 +416,21 @@ def test_unchanged_inputs_skip_the_rewrite_and_return_identical_result(
     # result must be exactly what a full rewrite would have returned.
     assert warm == cold
     assert warm[1]  # non-trivial: target env actually carries entries
+
+
+def test_crew_home_change_invalidates(
+    tmp_path: Path, rewrite_counter: dict[str, int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mk_tree(tmp_path, n_agents=1)
+    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "crew-a"))
+    _rewrite(tmp_path)
+    assert rewrite_counter["n"] == 1
+    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "crew-b"))
+    _rewrite(tmp_path)
+    assert rewrite_counter["n"] == 2
+    overlay = tmp_path / "mcp-gateway" / "agents" / "agent-0.json"
+    entry = json.loads(overlay.read_text())["mcpServers"]["srv"]
+    assert entry["env"] == {"KIROCREW_HOME": str(tmp_path / "crew-b")}
 
 
 def test_forward_declared_env_change_invalidates(

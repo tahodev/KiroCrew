@@ -3077,7 +3077,7 @@ class AcpRuntime:
         layer holds the overlay that answers it, so the set is resolved here and
         passed down. ``injection_server_names`` is one file read with no shaping
         (it exists to be callable on the session path) and returns an empty set
-        when nothing is stubbed, which is the default.
+        when nothing is stubbed.
         """
         if self._acp_backend == ACP_BACKEND_KAS and agent:
 
@@ -3173,11 +3173,15 @@ class AcpRuntime:
         mcp_servers: list[dict[str, Any]] | None = None,
         crew_agent: str | None = None,
         member_session_key: str = "",
+        session_key: str = "",
     ) -> AcpSessionHandle:
         """Create a new ACP session on this runtime. Returns a session handle.
 
         ``crew_agent`` is the canonical Kiro Crew identity for THIS session;
         None falls back to the runtime's own (spawn-time or rekeyed) identity.
+
+        ``session_key`` binds injected broker stubs to a known session, so a
+        child sharing this runtime cannot inherit its parent's PID identity.
 
         ``member_session_key`` marks a crew member's DM session and carries its
         session key: the dashboard session-control server is mounted as a
@@ -3196,7 +3200,10 @@ class AcpRuntime:
             # Resolve the overlay off the event loop: the lookup stats/reads
             # files, and blocking the loop stalls every other session's I/O.
             mcp_servers = await asyncio.to_thread(
-                pooled_session_servers, self._mcp_gateway_overlay, agent or self._agent
+                pooled_session_servers,
+                self._mcp_gateway_overlay,
+                agent or self._agent,
+                session_key=session_key,
             )
         if member_session_key:
             # circular import: members' module graph is heavy; resolved at call

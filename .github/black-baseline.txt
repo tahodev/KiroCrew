@@ -781,7 +781,6 @@ test/test_mcp_gateway_recaller.py
 test/test_mcp_gateway_session_inject.py
 test/test_mcp_gateway_shutdown_and_env.py
 test/test_mcp_gateway_stub_admission_fallback.py
-test/test_mcp_gateway_stub_optin.py
 test/test_mcp_gateway_stub_paths.py
 test/test_mcp_gateway_stub_poolable_ack.py
 test/test_mcp_gateway_stub_recaller.py

@@ -719,6 +719,11 @@ that demuxes frames by `params.sessionId` into per-session queues (no
 **`AcpSessionProvider`** adapts a handle to the `LLMProvider` interface so it is
 a drop-in replacement for `AcpClient`.
 
+Shared-runtime subagents pass their own Kiro Crew session key to
+`AcpRuntime.create_session`. It is carried only in each injected broker stub's
+environment, keeping sibling and parent caller identities distinct without
+changing the shared runtime environment or reusable agent overlay.
+
 Both transports share one parser — `acp/_dispatch.py`
 (`parse_session_update`, `build_permission_event`, `parse_usage_update`, …) — so
 they cannot drift. `AcpRuntime.load_session()` mirrors `AcpClient`'s resume

@@ -511,6 +511,9 @@ def build_register_payload(args: argparse.Namespace) -> dict:
         "channel_id": channel_id,
         "config_snapshot_hash": _CONFIG_SNAPSHOT_PLACEHOLDER,
         "caller": caller,
+        # A session-injected key identifies this stub for its whole lifetime.
+        # A delayed claim for its shared runtime must not replace that key.
+        "session_bound": bool(os.environ.get("KIROCREW_SESSION_KEY")),
         # Claim-push (gateway → gatewayd ``claim`` frame): the ancestor PID
         # chain of this stub, nearest first. gatewayd indexes the connection
         # under EVERY ancestor so a claim naming any level of the runtime's
@@ -1712,6 +1715,8 @@ def fallback_exec(args: argparse.Namespace) -> None:
     diagnostic. Windows has no in-place exec, so there the backend runs as a
     child inheriting this process's stdio -- see :func:`_fallback_spawn_child`
     for why the emulated ``exec*`` would kill the session outright."""
+    from kiro_crew.mcp_discovery import _is_first_party_managed_argv
+
     target_args = _split_target_args(args.target_args, args.target_args_sep)
     argv = [args.target_command, *target_args]
     # Restore the server's declared env. The rewriter moves declared env
@@ -1719,8 +1724,26 @@ def fallback_exec(args: argparse.Namespace) -> None:
     # otherwise reads only for PoolKey hashing. On this fallback path we exec
     # the real backend directly, so it must run with its declared env to match
     # the non-pooled baseline — the daemon's own environment lacks it.
+    declared_env = _parse_env_file(getattr(args, "env_file", "") or "")
     exec_env = dict(os.environ)
-    exec_env.update(_parse_env_file(getattr(args, "env_file", "") or ""))
+    exec_env.update(declared_env)
+    # The shared child's identity belongs to the stub, not an arbitrary
+    # fallback backend. Preserve it only for the package-derived managed
+    # invocation, using the same argv + env proof as discovery. A managed
+    # name alone cannot make spec-authored command text trustworthy.
+    # The wrapper pins the data home even when the original default entry had
+    # no env; include that inherited pin in the proof of the effective env.
+    managed_env = dict(declared_env)
+    if os.environ.get("KIROCREW_HOME"):
+        managed_env.setdefault("KIROCREW_HOME", os.environ["KIROCREW_HOME"])
+    if not _is_first_party_managed_argv(
+        getattr(args, "server", ""), args.target_command, target_args, managed_env
+    ):
+        exec_env = {
+            key: value
+            for key, value in exec_env.items()
+            if key.upper() not in {"KIROCREW_SESSION_KEY", "KIROCREW_HOST_PID"}
+        }
     if platform_compat.IS_WINDOWS:
         _fallback_spawn_child(argv, exec_env)
     # exec IS this fallback stub's whole purpose: when the gateway is

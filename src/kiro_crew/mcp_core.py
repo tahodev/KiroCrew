@@ -847,6 +847,18 @@ def strict_identity_diagnosis(server: str = "kirocrew-core") -> str:
     """
     if _resolve_session_key_strict():
         return ""
+    from kiro_crew.mcp_caller import current_tenant_nonce
+
+    if current_tenant_nonce():
+        # A connection marker proves routing, never session identity. Do not
+        # tell the operator to enable a route this request already traversed.
+        return (
+            f" {server} reached the MCP broker, but this call has no verified "
+            f"session identity. Check that the stub uses the gateway's "
+            f"KIROCREW_HOME and receives the session claim after startup, then "
+            f"reload this session. Enabling routing again will not repair "
+            f"an unidentified broker connection."
+        )
     if os.environ.get("KIROCREW_HOST_PID", "").isdigit():
         # The sandbox launcher declared a host pid, so the channel exists and
         # the sidecar is what failed — a signing/trust-root problem, not routing.

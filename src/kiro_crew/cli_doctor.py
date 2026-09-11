@@ -1480,10 +1480,8 @@ def _doctor_strict_identity(cfg: KiroCrewConfig) -> None:
     topology rather than the calling session.
 
     Reports only, and deliberately appends NO entry to doctor's ``issues``:
-    ``mcp_gateway.stub_servers`` is empty by default because routing starts a
-    broker plus a stub per server, so a hard issue here would make
-    ``kirocrew doctor`` exit 1 on every stock install — the same failure the
-    speech-to-text section is written to avoid. Parity with
+    operators may explicitly leave servers unrouted. Routing starts a broker
+    plus a stub per server, so an intentional opt-out is a note. Parity with
     :func:`_doctor_trust_root`, which also only prints.
 
     Skipped where the env sources exist by construction: on Linux the sandbox

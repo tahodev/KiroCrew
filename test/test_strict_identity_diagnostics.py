@@ -9,9 +9,7 @@ Two surfaces are under test, and they exist for two different readers:
 2. ``cli_doctor._doctor_strict_identity`` — the reader doing a checkup before
    hitting the wall.
 
-Both are REPORTS. ``mcp_gateway.stub_servers`` is empty by default on purpose
-(routing starts a broker plus a stub per server), so neither surface repairs
-anything.
+Both are reports; neither surface changes routing or repairs a connection.
 """
 
 from __future__ import annotations
@@ -59,6 +57,19 @@ class TestStrictIdentityDiagnosis:
         assert "did not verify" in out
         assert "trust root" in out
         assert "mcp_gateway.stub_servers" not in out
+
+    def test_routed_but_unidentified_call_does_not_claim_routing_is_disabled(
+        self, monkeypatch
+    ) -> None:
+        from kiro_crew import mcp_caller
+
+        monkeypatch.setattr(mcp_core, "_resolve_session_key_strict", lambda: "")
+        monkeypatch.setattr(mcp_caller, "current_tenant_nonce", lambda: "connection-only")
+        out = mcp_core.strict_identity_diagnosis()
+        assert "reached the MCP broker" in out
+        assert "no verified session identity" in out
+        assert "KIROCREW_HOME" in out
+        assert "is not in mcp_gateway.stub_servers" not in out
 
 
 class TestRefusalsCarryTheDiagnosis:
