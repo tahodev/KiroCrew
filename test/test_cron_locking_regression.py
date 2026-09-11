@@ -90,6 +90,29 @@ class TestFileLockNonBlocking:
         job = svc.add_job(name="j", message="m", every_secs=60)
         assert svc.get_job(job.id) is not None
 
+    def test_file_lock_open_does_not_truncate(self, tmp_path: Path) -> None:
+        """``_file_lock`` must open the lock file WITHOUT truncating it.
+
+        Pre-fix, the lock file was opened ``"w"``, which truncates at ``open()``
+        — before the ``try_acquire_lock`` spin ever runs. On Windows a
+        truncating open of a file whose first byte another holder has under
+        ``msvcrt.locking`` raises a sharing violation (``PermissionError``) at
+        ``open()`` time, so a contending acquirer crashes instead of spinning
+        until release; POSIX ``flock`` tolerates it, hiding the bug on Linux.
+        Seeding the file and asserting the bytes survive a real acquire/release
+        cycle fails on EVERY platform if a truncating open comes back (issue
+        #9266, one subsystem of the #9248 sweep — same class as
+        ``work_ledger._open_lock``).
+        """
+        svc = CronService(base_dir=tmp_path)
+        svc._dir.mkdir(parents=True, exist_ok=True)
+        lock = svc._dir / ".crons.lock"
+        seed = b"seeded-lock-bytes"
+        lock.write_bytes(seed)
+        with svc._file_lock(timeout=1.0):
+            assert lock.read_bytes() == seed, "lock file truncated at open()"
+        assert lock.read_bytes() == seed
+
 
 # ── Bug 2: unlocked read paths racing the remove worker ──
 

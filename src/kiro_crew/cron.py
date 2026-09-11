@@ -4809,7 +4809,12 @@ class CronService:
         self._guard_off_event_loop()
         self._dir.mkdir(parents=True, exist_ok=True)
         lock = self._dir / ".crons.lock"
-        fd = lock.open("w")
+        # Touch + "r+" (writable, NON-truncating): a "w" open truncates before the
+        # acquire attempt, and on Windows truncating a file whose first byte a
+        # contending holder has under msvcrt.locking raises PermissionError at
+        # open() -- before the spin ever starts. See work_ledger._open_lock.
+        lock.touch(exist_ok=True)
+        fd = lock.open("r+")
         deadline = time.monotonic() + timeout
         try:
             while not platform_compat.try_acquire_lock(fd.fileno(), exclusive=True):
